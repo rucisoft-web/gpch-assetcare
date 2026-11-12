@@ -127,3 +127,51 @@
     .rac-bar-row { grid-template-columns: 100px 1fr 64px; }
     .rac-kpi strong { font-size: 1.1rem; }
 }
+
+/* Halaman login: panel merek bergaris tegas di kiri, formulir di kanan. */
+.fi-simple-layout:has(.rac-auth-hero) { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; align-items: stretch; justify-content: stretch; background: #eef2f6; }
+.dark .fi-simple-layout:has(.rac-auth-hero) { background: #0d1520; }
+.fi-simple-layout:has(.rac-auth-hero) .fi-simple-main-ctn { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+.fi-simple-layout:has(.rac-auth-hero) .fi-simple-main { width: 100%; max-width: 440px; margin: 0; border-radius: 14px; border-top: 6px solid var(--rac-gold); position: relative; z-index: 2; box-shadow: 0 18px 45px #0b3a5c26, 0 2px 6px #0b3a5c14; }
+.fi-simple-layout:has(.rac-auth-hero) .fi-simple-main .fi-logo { display: none; }
+
+.rac-auth-hero { position: relative; overflow: hidden; background: var(--rac-navy); color: #fff; padding: 48px 56px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px; }
+.rac-auth-hero > *:not(.rac-auth-stripes) { position: relative; z-index: 1; }
+.rac-auth-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; }
+.rac-auth-brand img { width: 40px; height: 40px; border-radius: 10px; box-shadow: 0 0 0 2px #ffffff30; }
+.rac-auth-copy { max-width: 440px; }
+.rac-auth-eyebrow { margin: 0 0 12px; color: var(--rac-gold); font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.rac-auth-copy h2 { margin: 0 0 24px; font-size: 2.6rem; line-height: 1.12; font-weight: 800; }
+.rac-auth-copy ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rac-auth-copy li { display: flex; align-items: center; gap: 12px; font-size: 1rem; color: #dbe7f1; }
+.rac-auth-copy li::before { content: ""; width: 22px; height: 6px; border-radius: 3px; background: var(--rac-gold); flex: none; }
+.rac-auth-foot { margin: 0; font-size: .8rem; color: #9fb6c9; }
+
+/* Garis diagonal tegas: emas, biru, dan putih tipis di atas dasar navy. */
+.rac-auth-stripes { position: absolute; inset: 0; pointer-events: none; background:
+    linear-gradient(118deg,
+        transparent 0 62%,
+        var(--rac-gold) 62% 66.5%,
+        transparent 66.5% 69%,
+        #2a6ea6 69% 78%,
+        transparent 78% 80.5%,
+        #ffffff 80.5% 81.5%,
+        transparent 81.5% 84%,
+        #14558a 84% 100%); }
+
+@media (max-width: 900px) {
+    .fi-simple-layout:has(.rac-auth-hero) { grid-template-columns: 1fr; align-content: start; }
+    .rac-auth-hero { padding: 24px; gap: 0; min-height: 132px; }
+    .rac-auth-copy, .rac-auth-foot { display: none; }
+    .rac-auth-stripes { background:
+        linear-gradient(118deg,
+            transparent 0 64%,
+            var(--rac-gold) 64% 69%,
+            transparent 69% 72%,
+            #2a6ea6 72% 82%,
+            transparent 82% 85%,
+            #ffffff 85% 86.5%,
+            transparent 86.5% 89%,
+            #14558a 89% 100%); }
+    .fi-simple-layout:has(.rac-auth-hero) .fi-simple-main-ctn { align-items: flex-start; padding: 24px 16px 40px; margin-top: -36px; }
+}

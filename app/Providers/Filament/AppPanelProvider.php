@@ -65,6 +65,7 @@ class AppPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
+            ->renderHook(PanelsRenderHook::SIMPLE_LAYOUT_START, fn () => auth()->guest() ? view('filament.auth.hero', ['eyebrow' => 'Manajemen Aset Terpadu']) : '')
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => new HtmlString('<link rel="stylesheet" href="'.asset('css/asset-care.css').'?v='.@filemtime(public_path('css/asset-care.css')).'">'))
             ->middleware([
                 EncryptCookies::class,

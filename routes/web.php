@@ -12,4 +12,5 @@ Route::post('/qr/{token}/lapor', [QrController::class, 'report'])->name('qr.repo
 
 Route::middleware('auth')->group(function () {
     Route::get('/label-qr', [QrController::class, 'labels'])->name('qr.labels');
+    Route::view('/tanpa-perusahaan', 'no-company')->name('no-company');
 });

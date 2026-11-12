@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Filament\RedirectToTenant;
 use App\Support\CurrentCompany;
 use Carbon\Carbon;
+use Filament\Http\Controllers\RedirectToTenantController;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,6 +17,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // scoped: direset setiap permintaan HTTP dan setiap job antrean.
         $this->app->scoped(CurrentCompany::class);
+
+        $this->app->bind(RedirectToTenantController::class, RedirectToTenant::class);
     }
 
     public function boot(): void
