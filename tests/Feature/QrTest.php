@@ -55,4 +55,22 @@ class QrTest extends TestCase
         $this->actingAs($this->member($a))->get('/label-qr?ids='.$asset->id)->assertOk()->assertSee('Genset')->assertSee('<svg', false);
         $this->actingAs($this->member($b))->get('/label-qr?ids='.$asset->id)->assertNotFound();
     }
+
+    public function test_labels_per_location_include_sub_locations(): void
+    {
+        $a = $this->company('A');
+        $b = $this->company('B');
+        $this->useCompany($a);
+        $cat = AssetCategory::first()->id;
+        $floor = Location::create(['name' => 'Lantai 4']);
+        $room = Location::create(['name' => 'Kamar 401', 'parent_id' => $floor->id]);
+        $other = Location::create(['name' => 'Lobby']);
+        Asset::create(['name' => 'AC Kamar 401', 'asset_category_id' => $cat, 'location_id' => $room->id]);
+        Asset::create(['name' => 'Sofa Lobby', 'asset_category_id' => $cat, 'location_id' => $other->id]);
+        app(CurrentCompany::class)->set(null);
+
+        $this->actingAs($this->member($a))->get('/label-qr?location='.$floor->id)
+            ->assertOk()->assertSee('AC Kamar 401')->assertDontSee('Sofa Lobby');
+        $this->actingAs($this->member($b))->get('/label-qr?location='.$floor->id)->assertNotFound();
+    }
 }

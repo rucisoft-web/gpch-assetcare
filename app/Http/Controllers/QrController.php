@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\Priority;
 use App\Enums\RequestType;
 use App\Models\Asset;
+use App\Models\Location;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use App\Support\CurrentCompany;
+use App\Support\LabelSize;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -67,21 +70,36 @@ class QrController extends Controller
         return view('qr.thanks', ['asset' => $asset, 'request' => $maintenance, 'token' => $token]);
     }
 
-    /** Label QR siap cetak (A4, 2 kolom). Hanya aset dari perusahaan tempat pengguna menjadi anggota. */
+    /**
+     * Label QR siap cetak (A4 2 kolom, atau satu label per halaman untuk printer label). Hanya aset dari perusahaan tempat pengguna menjadi anggota.
+     * Pilih aset lewat ?ids=1,2,3 atau ?location=ID (lokasi beserta seluruh turunannya).
+     */
     public function labels(Request $request): View
     {
         $ids = collect(explode(',', (string) $request->query('ids')))->map(fn ($id) => (int) $id)->filter()->take(500);
         $companyIds = $request->user()->memberships()->where('is_active', true)->pluck('company_id');
 
+        $locationIds = null;
+        if ($request->filled('location')) {
+            $location = Location::withoutGlobalScopes()->whereIn('company_id', $companyIds)->find((int) $request->query('location'));
+            abort_unless($location, 404);
+            $locationIds = [$location->id, ...$location->descendantIds()];
+        }
+
         $assets = Asset::withoutGlobalScopes()
             ->with(['location', 'company'])
-            ->whereIn('id', $ids)
+            ->when($locationIds !== null, fn ($q) => $q->whereIn('location_id', $locationIds)->where('is_active', true), fn ($q) => $q->whereIn('id', $ids))
             ->whereIn('company_id', $companyIds)
+            ->limit(500)
             ->orderBy('code')
             ->get();
 
         abort_if($assets->isEmpty(), 404);
 
-        return view('qr.labels', ['assets' => $assets]);
+        // Ukuran label: dari ?size=, atau pilihan terakhir pengguna (cookie).
+        $size = LabelSize::normalize($request->query('size', $request->cookie('label_size')));
+        Cookie::queue('label_size', $size, 60 * 24 * 365);
+
+        return view('qr.labels', ['assets' => $assets, 'size' => $size, 'dims' => LabelSize::get($size)]);
     }
 }

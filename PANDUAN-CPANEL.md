@@ -1,5 +1,29 @@
 # Panduan Instalasi Ruci Asset Care di cPanel
 
+## Cara cepat: paket GPCH lewat Terminal
+
+Paket **`gpch-assetcare-cpanel.zip`** sudah berisi folder `vendor` (tanpa Composer) dan skrip `install-cpanel.sh`.
+
+1. Buat database dan user MySQL (langkah 2 di bawah).
+2. *File Manager* › `/home/userku` › **Upload** `gpch-assetcare-cpanel.zip`.
+3. cPanel › **Terminal**:
+
+```bash
+cd ~
+unzip -q gpch-assetcare-cpanel.zip && rm gpch-assetcare-cpanel.zip
+cd gpch-assetcare
+bash install-cpanel.sh      # pertama kali: membuat .env lalu berhenti
+nano .env                   # isi APP_URL, DB_*, ASSET_ADMIN_*, ASSET_DEMO=true untuk memuat data GPCH
+bash install-cpanel.sh      # key, tabel, data GPCH, optimize, cek server
+```
+
+4. Arahkan document root subdomain ke `gpch-assetcare/public` (langkah 4 di bawah), aktifkan SSL.
+5. Masuk di `https://aset.domainanda.com/app/gpch` dengan akun di bagian *Situs demo / promosi*, atau sebagai admin platform di `/platform`.
+
+Bila server sudah berisi data contoh GPCH versi lama, hapus dulu dengan `php artisan asset:remove-demo` lalu jalankan `php artisan asset:demo`, karena data contoh tidak dimuat ulang bila perusahaan `gpch` sudah ada.
+
+Pada langkah di bawah, ganti `ruci-asset-care` dengan `gpch-assetcare`.
+
 Panduan ini untuk hosting cPanel biasa (shared hosting atau VPS dengan cPanel). Ada dua jalur: **dengan Terminal/SSH** (lebih mudah) dan **tanpa Terminal** (memakai File Manager dan Cron Jobs sekali jalan).
 
 Contoh di panduan memakai akun cPanel `userku`, folder program `/home/userku/ruci-asset-care`, dan alamat `https://aset.domainanda.com`. Sesuaikan dengan milik Anda.
@@ -142,11 +166,12 @@ Aplikasi ini **tidak membutuhkan cron permanen**: skor, PM terlambat, dan dasbor
    - **Eksekutif**: hanya baca (dasbor, register, laporan).
 4. Pengguna masuk di `https://aset.domainanda.com/app`. Urutan kerja yang disarankan:
    1. *Konfigurasi* › Lokasi (berjenjang), Departemen, Kategori Aset, Templat Ruang/Lokasi.
-   2. *Identifikasi Awal* › Survei Aset Awal (penugasan tim per lokasi) › **Bangkitkan dari templat** / **Salin dari lokasi** / **Duplikasi aset**.
-   3. Tim lapangan memakai **Verifikasi Aset** untuk menandai aset ada, tidak ditemukan, atau aset tambahan.
-   4. Lengkapi nilai, umur, skor kesehatan, dan kekritisan di **Register Aset**.
-   5. **Cetak label QR** (pilih aset › *Cetak label QR*) lalu tempel di aset. Siapa pun yang memindai bisa melapor kerusakan tanpa login.
-   6. Kelola **Permintaan Pemeliharaan → Work Order**, **Pemeliharaan Preventif** (*Terbitkan WO* memajukan jatuh tempo otomatis), **Register Risiko**, dan **Usulan CAPEX**.
+   2. Di *Lokasi*, tetapkan **Jenis ruang** setiap kamar/ruang (bisa massal: centang › *Tetapkan jenis ruang*).
+   3. *Identifikasi Awal* › Survei Aset Awal (penugasan tim per lokasi) › **Bangkitkan sesuai jenis ruang** / **Bangkitkan dari templat** / **Salin dari lokasi** / **Duplikasi aset**.
+   4. Tim lapangan membuka **Mode Lapangan** di HP/handheld: pindai QR (kamera atau tombol scanner), tandai ada/tidak ada, catat inspeksi, lapor kerusakan, atau tambah aset yang belum terdaftar. Bisa juga keliling per lokasi tanpa memindai. Untuk banyak aset sekaligus dari meja, pakai **Verifikasi Aset**.
+   5. Lengkapi nilai, umur, skor kesehatan, dan kekritisan di **Register Aset**.
+   6. **Cetak label QR** (pilih aset › *Cetak label QR*, atau *Cetak label per lokasi*) lalu tempel di aset. Pilih ukuran di bagian atas halaman label: A4 untuk printer biasa, 50 × 30 mm (paling umum) atau ukuran lain untuk printer label Bluetooth. Ukuran terakhir diingat. Siapa pun yang memindai bisa melapor kerusakan tanpa login.
+   7. Kelola **Permintaan Pemeliharaan → Work Order**, **Pemeliharaan Preventif** (*Terbitkan WO* memajukan jatuh tempo otomatis), **Register Risiko**, dan **Usulan CAPEX**.
 5. Modul **bagian umum**:
    1. *Konfigurasi* › **Ruang Rapat**: daftar ruang beserta kapasitas dan fasilitas. Karyawan memesan di *Pemesanan Ruang Rapat*; jadwal yang bentrok ditolak otomatis, manajer menyetujui. *Jadwal Ruang Rapat* menampilkan seminggu penuh per ruang.
    2. *Kendaraan Dinas*: isi nomor polisi, odometer, dan tanggal pajak, STNK, KIR, asuransi, servis. Pemesanan disetujui dengan menetapkan kendaraan dan pengemudi, lalu dicatat *Berangkat* dan *Kembali* (odometer). Di halaman kendaraan ada tab pengisian BBM, riwayat servis, dan dokumen.
@@ -157,9 +182,9 @@ Aplikasi ini **tidak membutuhkan cron permanen**: skor, PM terlambat, dan dasbor
 
 Isi `ASSET_DEMO=true` (opsional `ASSET_DEMO_PASSWORD`) lalu jalankan `php artisan asset:demo` dan `php artisan optimize`. Data contoh **Grand Pasundan Convention Hotel** (fiktif, berbasis modul Odoo GPCH Asset Care) dibuat di `/app/gpch`:
 
-- 297 aset: 30 kamar dan 3 ruang rapat dari templat, plus 36 aset utama (chiller, genset, lift, eskalator, STP, dapur, laundry, AV, TI).
+- Sekitar 2.980 aset: 163 kamar dari 7 templat jenis kamar (Standard, Deluxe, Executive, Junior Suite, Grand Family Suite, President Suite, 3-Bedroom Pasundan Suite), koridor 10 lantai, 12 ruang rapat, plus sekitar 250 aset utama gedung (chiller, genset, lift, boiler air panas, STP, gas dapur, kitchen, laundry, AV Malibu Dome, TI, kolam, fitness & spa). Aset proyeksi berstatus *Diharapkan* untuk diverifikasi di lapangan.
 - Survei aset awal yang sedang berjalan (terverifikasi, tidak ditemukan, aset tambahan, belum diperiksa).
-- 12 bulan riwayat work order preventif/korektif/darurat beserta biaya, 70 inspeksi, 36 permintaan (sebagian dari pindai QR), 36 rencana PM (sebagian terlambat), 15 risiko, dan 8 usulan CAPEX.
+- 12 bulan riwayat work order preventif/korektif/darurat beserta biaya, 70 inspeksi, 36 permintaan (sebagian dari pindai QR), rencana PM untuk setiap aset utama (sebagian terlambat), 17 risiko, dan 13 usulan CAPEX.
 - Bagian umum: 4 ruang rapat dengan sekitar 100 pemesanan, 5 kendaraan dinas (sebagian pajak/servis jatuh tempo) dengan pemesanan, log BBM 6 bulan, dan riwayat servis, 22 barang persediaan dengan 3 bulan mutasi stok (4 di antaranya menipis), 7 permintaan barang, dan 15 dokumen perizinan/kontrak (sebagian segera berakhir).
 
 Instalasi yang sudah berisi data contoh lama cukup menjalankan `php artisan migrate --force` lalu `php artisan asset:demo`; data aset tidak diubah, hanya data bagian umum yang ditambahkan.
