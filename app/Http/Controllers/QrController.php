@@ -9,7 +9,9 @@ use App\Models\Location;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use App\Support\CurrentCompany;
+use App\Support\LabelSize;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -69,7 +71,7 @@ class QrController extends Controller
     }
 
     /**
-     * Label QR siap cetak (A4, 2 kolom). Hanya aset dari perusahaan tempat pengguna menjadi anggota.
+     * Label QR siap cetak (A4 2 kolom, atau satu label per halaman untuk printer label). Hanya aset dari perusahaan tempat pengguna menjadi anggota.
      * Pilih aset lewat ?ids=1,2,3 atau ?location=ID (lokasi beserta seluruh turunannya).
      */
     public function labels(Request $request): View
@@ -94,6 +96,10 @@ class QrController extends Controller
 
         abort_if($assets->isEmpty(), 404);
 
-        return view('qr.labels', ['assets' => $assets]);
+        // Ukuran label: dari ?size=, atau pilihan terakhir pengguna (cookie).
+        $size = LabelSize::normalize($request->query('size', $request->cookie('label_size')));
+        Cookie::queue('label_size', $size, 60 * 24 * 365);
+
+        return view('qr.labels', ['assets' => $assets, 'size' => $size, 'dims' => LabelSize::get($size)]);
     }
 }

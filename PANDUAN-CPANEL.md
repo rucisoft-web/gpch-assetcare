@@ -168,9 +168,9 @@ Aplikasi ini **tidak membutuhkan cron permanen**: skor, PM terlambat, dan dasbor
    1. *Konfigurasi* › Lokasi (berjenjang), Departemen, Kategori Aset, Templat Ruang/Lokasi.
    2. Di *Lokasi*, tetapkan **Jenis ruang** setiap kamar/ruang (bisa massal: centang › *Tetapkan jenis ruang*).
    3. *Identifikasi Awal* › Survei Aset Awal (penugasan tim per lokasi) › **Bangkitkan sesuai jenis ruang** / **Bangkitkan dari templat** / **Salin dari lokasi** / **Duplikasi aset**.
-   4. Tim lapangan memakai **Verifikasi Aset** untuk menandai aset ada, tidak ditemukan, atau aset tambahan.
+   4. Tim lapangan membuka **Mode Lapangan** di HP/handheld: pindai QR (kamera atau tombol scanner), tandai ada/tidak ada, catat inspeksi, lapor kerusakan, atau tambah aset yang belum terdaftar. Bisa juga keliling per lokasi tanpa memindai. Untuk banyak aset sekaligus dari meja, pakai **Verifikasi Aset**.
    5. Lengkapi nilai, umur, skor kesehatan, dan kekritisan di **Register Aset**.
-   6. **Cetak label QR** (pilih aset › *Cetak label QR*) lalu tempel di aset. Siapa pun yang memindai bisa melapor kerusakan tanpa login.
+   6. **Cetak label QR** (pilih aset › *Cetak label QR*, atau *Cetak label per lokasi*) lalu tempel di aset. Pilih ukuran di bagian atas halaman label: A4 untuk printer biasa, 50 × 30 mm (paling umum) atau ukuran lain untuk printer label Bluetooth. Ukuran terakhir diingat. Siapa pun yang memindai bisa melapor kerusakan tanpa login.
    7. Kelola **Permintaan Pemeliharaan → Work Order**, **Pemeliharaan Preventif** (*Terbitkan WO* memajukan jatuh tempo otomatis), **Register Risiko**, dan **Usulan CAPEX**.
 5. Modul **bagian umum**:
    1. *Konfigurasi* › **Ruang Rapat**: daftar ruang beserta kapasitas dan fasilitas. Karyawan memesan di *Pemesanan Ruang Rapat*; jadwal yang bentrok ditolak otomatis, manajer menyetujui. *Jadwal Ruang Rapat* menampilkan seminggu penuh per ruang.

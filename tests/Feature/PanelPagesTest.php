@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\Role;
 use App\Models\Asset;
+use App\Models\AssetSurvey;
+use App\Models\AssetTemplate;
 use App\Models\Company;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
@@ -34,9 +36,9 @@ class PanelPagesTest extends TestCase
         $common = [
             '', '/assets', '/assets/'.$ids(Asset::class), '/inspections', '/maintenance-requests',
             '/maintenance-requests/'.$ids(MaintenanceRequest::class), '/work-orders', '/work-orders/'.$ids(WorkOrder::class),
-            '/preventive-plans', '/asset-risks', '/capex-proposals', '/asset-surveys', '/asset-surveys/'.$ids(\App\Models\AssetSurvey::class), '/verifikasi-aset',
+            '/preventive-plans', '/asset-risks', '/capex-proposals', '/asset-surveys', '/asset-surveys/'.$ids(AssetSurvey::class), '/verifikasi-aset', '/mode-lapangan',
         ];
-        $managerOnly = ['/departments', '/locations', '/asset-categories', '/asset-templates', '/asset-templates/'.$ids(\App\Models\AssetTemplate::class).'/edit', '/audit-logs'];
+        $managerOnly = ['/departments', '/locations', '/asset-categories', '/asset-templates', '/asset-templates/'.$ids(AssetTemplate::class).'/edit', '/audit-logs'];
         $operate = ['/assets/create', '/assets/'.$ids(Asset::class).'/edit', '/inspections/create', '/work-orders/create'];
 
         foreach (['manajer@gpch.demo' => Role::Manajer, 'teknisi@gpch.demo' => Role::Staf, 'gm@gpch.demo' => Role::Eksekutif] as $email => $role) {

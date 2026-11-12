@@ -15,7 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
 
-/** Aksi jenis ruang di panel: bangkitkan per jenis ruang, terapkan class TmpActionTest duplikasi templat, tetapkan jenis ruang massal. */
+/** Aksi jenis ruang di panel: bangkitkan per jenis ruang, terapkan & duplikasi templat, tetapkan jenis ruang massal. */
 class RoomTypeActionsTest extends TestCase
 {
     use RefreshDatabase;

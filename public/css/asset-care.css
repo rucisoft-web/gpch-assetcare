@@ -217,3 +217,47 @@
 .rac-slot b { display: block; font-size: .72rem; }
 .rac-slot span { display: block; font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rac-slot:hover { filter: brightness(.96); }
+
+/* ===== Mode Lapangan (HP / handheld) ===== */
+.rac-lap { display: flex; flex-direction: column; gap: 14px; max-width: 720px; margin: 0 auto; }
+.rac-lap-card { background: var(--rac-card); border: 1px solid var(--rac-line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; color: var(--rac-text); }
+.rac-lap-card h3 { font-weight: 700; font-size: 1rem; margin: 0; }
+.rac-lap-card h2 { font-weight: 700; font-size: 1.2rem; margin: 2px 0; line-height: 1.25; }
+.rac-lap-scan { display: flex; gap: 8px; }
+.rac-lap-scan input, .rac-lap-select { flex: 1; min-width: 0; width: 100%; font-size: 1rem; padding: 12px; border-radius: 10px; border: 1px solid var(--rac-line); background: var(--rac-card); color: var(--rac-text); }
+.rac-lap-scan input:focus, .rac-lap-select:focus { outline: 2px solid var(--rac-gold); border-color: var(--rac-gold); }
+.rac-lap-grid .fi-btn { min-height: 48px; width: 100%; border-radius: 10px; font-size: .95rem; }
+.rac-lap-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--rac-line); background: var(--rac-track); color: var(--rac-text); font-weight: 600; font-size: .95rem; text-align: center; cursor: pointer; width: 100%; }
+.rac-lap-scan .rac-lap-btn { width: auto; }
+.rac-lap-btn:active { filter: brightness(.94); }
+.rac-lap-primary { background: var(--rac-navy); border-color: var(--rac-navy); color: #fff; }
+.rac-lap-btn.rac-lap-ok { background: var(--rac-good); border-color: var(--rac-good); color: #fff; }
+.rac-lap-btn.rac-lap-bad { background: var(--rac-bad); border-color: var(--rac-bad); color: #fff; }
+.rac-lap-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rac-lap-row > .rac-lap-btn { flex: 1; }
+.rac-lap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rac-lap-grid > * { width: 100%; }
+.rac-lap-reader { width: 100%; border-radius: 10px; overflow: hidden; }
+.rac-lap-asset { border: 2px solid var(--rac-gold); }
+.rac-lap-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.rac-lap-x { font-size: 1.6rem; line-height: 1; width: 40px; height: 40px; border-radius: 10px; background: var(--rac-track); color: var(--rac-text); flex: none; }
+.rac-lap-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.rac-lap-badge { padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; background: var(--rac-track); }
+.rac-lap-v-verified { color: var(--rac-good); }
+.rac-lap-v-missing { color: var(--rac-bad); }
+.rac-lap-v-additional { color: #1565c0; }
+.rac-lap-v-expected, .rac-lap-v-needs_id { color: var(--rac-warn); }
+.rac-lap-link { align-self: flex-start; color: var(--rac-gold); font-weight: 600; font-size: .9rem; padding: 4px 0; }
+.rac-lap-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rac-lap-chip { padding: 8px 12px; border-radius: 20px; border: 1px solid var(--rac-line); background: var(--rac-track); color: var(--rac-text); font-size: .88rem; font-weight: 600; }
+.rac-lap-chip small { margin-left: 4px; color: var(--rac-muted); font-weight: 400; }
+.rac-lap-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rac-lap-list li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--rac-line); }
+.rac-lap-item { flex: 1; min-width: 0; text-align: left; color: var(--rac-text); padding: 4px 0; }
+.rac-lap-item b { display: block; font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rac-lap-item small { display: block; color: var(--rac-muted); font-size: .78rem; }
+.rac-lap-quick { display: flex; gap: 6px; flex: none; }
+.rac-lap-quick button { width: 44px; height: 44px; border-radius: 10px; font-size: 1.15rem; font-weight: 700; color: #fff; }
+.rac-lap-quick .rac-lap-ok { background: var(--rac-good); }
+.rac-lap-quick .rac-lap-bad { background: var(--rac-bad); }
+@media (max-width: 380px) { .rac-lap-grid { grid-template-columns: 1fr; } }

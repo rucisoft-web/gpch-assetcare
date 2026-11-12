@@ -18,7 +18,8 @@ Dibangun ulang dari modul Odoo 18 **GPCH Asset Care** (`gpch_asset_care` 18.0.1.
 |---|---|
 | Dasbor Eksekutif | Asset Care Index, 8 KPI, kesehatan per departemen, distribusi kondisi, tren 12 bulan, kepatuhan PM, matriks risiko 5×5, biaya per kategori, daftar perhatian manajemen. **Semua bisa diklik** ke data di baliknya. |
 | Register Aset | Skor kesehatan 0–100 (7 komponen berbobot), kondisi, kekritisan (5 dampak), skor risiko & prioritas otomatis, umur/sisa umur, tab Aset kritis / Perlu perhatian / Mendesak, pengelompokan per departemen/kategori/lokasi/kondisi |
-| QR Asset ID | Token acak per aset, halaman HP publik (identitas, kesehatan, status) dengan formulir lapor kerusakan + foto, label A4 siap cetak (satuan atau massal), buat ulang QR |
+| QR Asset ID | Token acak per aset, halaman HP publik (identitas, kesehatan, status) dengan formulir lapor kerusakan + foto, label siap cetak satuan, massal, atau per lokasi dalam ukuran umum (A4, 50×30, 40×30, 50×25, 60×40, 30×20 mm, pita 18/24 mm) untuk printer biasa maupun printer label Bluetooth, buat ulang QR |
+| Mode Lapangan | Satu layar untuk petugas keliling dengan HP/handheld: pindai QR lewat kamera atau tombol scanner bawaan, tandai ada/tidak ada, catat inspeksi, lapor kerusakan, keliling per lokasi (lantai › kamar), tambah aset yang belum terdaftar, cetak label |
 | Identifikasi Awal | Survei aset awal dengan penugasan tim per lokasi, templat ruang/lokasi, **jenis ruang per lokasi** (mis. Kamar 401 = Kamar Deluxe) untuk membangkitkan aset massal per jenis kamar, duplikasi templat, bangkitkan dari templat, salin struktur lokasi, duplikasi aset, halaman Verifikasi Aset (ada / tidak ditemukan / aset tambahan) |
 | Inspeksi | Hasil lulus/pantau/gagal, skor kondisi (bisa memperbarui kondisi fisik aset), meter, temuan, rekomendasi, foto |
 | Permintaan Pemeliharaan | Baru → diverifikasi → work order dibuat / dibatalkan; laporan dari pindai QR ditandai |
