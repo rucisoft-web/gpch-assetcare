@@ -38,6 +38,8 @@ class ViewAsset extends ViewRecord
                 $mark('missing', 'Tidak ditemukan', VerificationStatus::Missing, Heroicon::OutlinedXCircle, 'danger'),
                 $mark('additional', 'Aset tambahan', VerificationStatus::Additional, Heroicon::OutlinedPlusCircle, 'warning'),
             ])->label('Verifikasi')->icon(Heroicon::OutlinedCheckBadge)->button()->color('gray')->visible(fn () => $this->canOperate()),
+            Action::make('print_qr')->label('Cetak label QR')->icon(Heroicon::OutlinedQrCode)->color('gray')
+                ->url(fn (Asset $record) => route('qr.labels', ['ids' => $record->id]))->openUrlInNewTab(),
             Action::make('regenerate_qr')->label('Buat ulang QR')->icon(Heroicon::OutlinedArrowPath)->color('gray')
                 ->visible(fn () => $this->canOperate())
                 ->requiresConfirmation()
