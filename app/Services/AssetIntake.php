@@ -55,6 +55,45 @@ class AssetIntake
         return $created;
     }
 
+    /**
+     * Bangkitkan aset untuk setiap lokasi sesuai jenis ruangnya (templat yang ditautkan ke lokasi).
+     * Lokasi tanpa templat dilewati.
+     *
+     * @param  array<int>  $locationIds
+     * @return Collection<int, Asset>
+     */
+    public function fromLinkedTemplates(array $locationIds, ?int $surveyId = null, bool $skipExisting = true): Collection
+    {
+        $created = collect();
+
+        Location::whereIn('id', $locationIds)->whereNotNull('asset_template_id')->with('template')->get()
+            ->groupBy('asset_template_id')
+            ->each(function ($locations) use ($surveyId, $skipExisting, $created) {
+                $template = $locations->first()->template;
+
+                if ($template) {
+                    $created->push(...$this->fromTemplate($template, $locations->pluck('id')->all(), $surveyId, $skipExisting));
+                }
+            });
+
+        return $created;
+    }
+
+    /** Salin templat beserta seluruh barisnya, misalnya untuk membuat varian jenis kamar baru. */
+    public function duplicateTemplate(AssetTemplate $template, string $name): AssetTemplate
+    {
+        return DB::transaction(function () use ($template, $name) {
+            // Ambil kolom tabel saja; record dari tabel Filament bisa membawa atribut agregat (lines_count, dsb.).
+            $copy = AssetTemplate::create(['name' => $name] + $template->only(['company_id', 'location_type', 'is_active', 'note']));
+
+            foreach ($template->lines()->get() as $line) {
+                $copy->lines()->create($line->replicate(['asset_template_id'])->getAttributes());
+            }
+
+            return $copy;
+        });
+    }
+
     /** @param array<int> $targetIds @return Collection<int, Asset> */
     public function copyLocation(int $sourceId, array $targetIds, ?int $surveyId = null, bool $skipExisting = true): Collection
     {

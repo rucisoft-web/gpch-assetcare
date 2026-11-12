@@ -25,4 +25,10 @@ class AssetTemplate extends Model
     {
         return $this->hasMany(AssetTemplateLine::class)->orderBy('sort')->orderBy('id');
     }
+
+    /** Lokasi yang memakai templat ini sebagai jenis ruangnya. */
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
 }

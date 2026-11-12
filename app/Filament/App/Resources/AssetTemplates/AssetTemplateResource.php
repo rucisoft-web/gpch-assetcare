@@ -10,13 +10,18 @@ use App\Filament\Concerns\ManagerPermissions;
 use App\Models\AssetCategory;
 use App\Models\AssetTemplate;
 use App\Models\Department;
+use App\Models\Location;
+use App\Services\AssetIntake;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
@@ -84,10 +89,41 @@ class AssetTemplateResource extends Resource
                 TextColumn::make('name')->label('Nama')->searchable(),
                 TextColumn::make('location_type')->label('Jenis lokasi')->badge(),
                 TextColumn::make('lines_count')->label('Baris aset')->counts('lines'),
-                TextColumn::make('lines_sum_quantity')->label('Total unit')->sum('lines', 'quantity'),
+                TextColumn::make('lines_sum_quantity')->label('Unit per lokasi')->sum('lines', 'quantity'),
+                TextColumn::make('locations_count')->label('Lokasi terhubung')->counts('locations')->sortable(),
                 IconColumn::make('is_active')->label('Aktif')->boolean(),
             ])
-            ->recordActions([EditAction::make()]);
+            ->recordActions([
+                EditAction::make(),
+                ActionGroup::make([
+                    Action::make('apply')->label('Terapkan ke lokasi')->icon(Heroicon::OutlinedSparkles)
+                        ->modalHeading(fn (AssetTemplate $record) => "Bangkitkan aset dari templat {$record->name}")
+                        ->modalSubmitActionLabel('Bangkitkan aset')
+                        ->schema([
+                            Select::make('location_ids')->label('Lokasi tujuan')->required()->multiple()->searchable()
+                                ->options(fn () => Location::query()->where('is_active', true)->orderBy('complete_name')->pluck('complete_name', 'id'))
+                                ->default(fn (AssetTemplate $record) => $record->locations()->where('is_active', true)->pluck('id')->map(fn ($id) => (string) $id)->all())
+                                ->helperText('Terisi otomatis dengan lokasi yang jenis ruangnya memakai templat ini.'),
+                            Toggle::make('skip_existing')->label('Lewati aset yang sudah ada (nama & kategori sama)')->default(true),
+                        ])
+                        ->action(function (AssetTemplate $record, array $data) {
+                            $count = app(AssetIntake::class)->fromTemplate($record, $data['location_ids'], null, (bool) $data['skip_existing'])->count();
+                            Notification::make()->title($count ? "{$count} aset dibangkitkan." : 'Tidak ada aset baru (semua sudah ada).')
+                                ->body($count ? 'Status: Diharapkan. Verifikasi di lapangan lewat menu Verifikasi Aset.' : null)->success()->send();
+                        }),
+                    Action::make('duplicate')->label('Duplikasi templat')->icon(Heroicon::OutlinedDocumentDuplicate)
+                        ->modalHeading('Duplikasi templat')
+                        ->modalDescription('Semua baris aset ikut tersalin. Cocok untuk membuat varian jenis kamar baru.')
+                        ->schema([
+                            TextInput::make('name')->label('Nama templat baru')->required()->maxLength(255)
+                                ->default(fn (AssetTemplate $record) => $record->name.' (salinan)'),
+                        ])
+                        ->action(function (AssetTemplate $record, array $data) {
+                            app(AssetIntake::class)->duplicateTemplate($record, $data['name']);
+                            Notification::make()->title('Templat diduplikasi.')->success()->send();
+                        }),
+                ]),
+            ]);
     }
 
     public static function getPages(): array

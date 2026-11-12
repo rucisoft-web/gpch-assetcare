@@ -140,6 +140,40 @@ class DomainTest extends TestCase
         $this->assertSame(IdentificationSource::Additional, $asset->fresh()->identification_source);
     }
 
+    public function test_room_types_generate_assets_per_location_and_templates_can_be_duplicated(): void
+    {
+        $this->useCompany($this->company());
+        $cat = AssetCategory::first();
+
+        $standard = AssetTemplate::create(['name' => 'Kamar Standard', 'location_type' => 'room']);
+        $standard->lines()->create(['name' => 'AC 1 PK', 'asset_category_id' => $cat->id, 'quantity' => 1]);
+        $standard->lines()->create(['name' => 'TV 32"', 'asset_category_id' => $cat->id, 'quantity' => 1]);
+
+        $suite = app(AssetIntake::class)->duplicateTemplate($standard, 'Junior Suite');
+        $this->assertSame(['AC 1 PK', 'TV 32"'], $suite->lines()->pluck('name')->all());
+        $this->assertSame(2, $standard->lines()->count(), 'templat asal tidak berubah');
+        $suite->lines()->where('name', 'AC 1 PK')->update(['quantity' => 2]);
+
+        $r201 = Location::create(['name' => 'Kamar 201', 'asset_template_id' => $standard->id]);
+        $r202 = Location::create(['name' => 'Kamar 202', 'asset_template_id' => $standard->id]);
+        $r1101 = Location::create(['name' => 'Kamar 1101', 'asset_template_id' => $suite->id]);
+        $lobby = Location::create(['name' => 'Lobby']);
+
+        $intake = app(AssetIntake::class);
+        $created = $intake->fromLinkedTemplates([$r201->id, $r202->id, $r1101->id, $lobby->id]);
+
+        $this->assertCount(2 + 2 + 3, $created);
+        $this->assertSame(['AC 1 PK #1', 'AC 1 PK #2', 'TV 32"'], Asset::where('location_id', $r1101->id)->orderBy('id')->pluck('name')->all());
+        $this->assertSame(0, Asset::where('location_id', $lobby->id)->count(), 'lokasi tanpa jenis ruang dilewati');
+        $this->assertCount(0, $intake->fromLinkedTemplates([$r201->id]), 'yang sudah ada dilewati');
+        $this->assertSame([$r201->id, $r202->id], $standard->locations()->orderBy('id')->pluck('id')->all());
+
+        // Jenis ruang tidak boleh merujuk templat perusahaan lain.
+        $this->useCompany($this->company('Hotel Lain'));
+        $this->expectException(LogicException::class);
+        Location::create(['name' => 'Kamar X', 'asset_template_id' => $standard->id]);
+    }
+
     public function test_location_complete_name_follows_parent(): void
     {
         $this->useCompany($this->company());

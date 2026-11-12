@@ -19,7 +19,7 @@ Dibangun ulang dari modul Odoo 18 **GPCH Asset Care** (`gpch_asset_care` 18.0.1.
 | Dasbor Eksekutif | Asset Care Index, 8 KPI, kesehatan per departemen, distribusi kondisi, tren 12 bulan, kepatuhan PM, matriks risiko 5×5, biaya per kategori, daftar perhatian manajemen. **Semua bisa diklik** ke data di baliknya. |
 | Register Aset | Skor kesehatan 0–100 (7 komponen berbobot), kondisi, kekritisan (5 dampak), skor risiko & prioritas otomatis, umur/sisa umur, tab Aset kritis / Perlu perhatian / Mendesak, pengelompokan per departemen/kategori/lokasi/kondisi |
 | QR Asset ID | Token acak per aset, halaman HP publik (identitas, kesehatan, status) dengan formulir lapor kerusakan + foto, label A4 siap cetak (satuan atau massal), buat ulang QR |
-| Identifikasi Awal | Survei aset awal dengan penugasan tim per lokasi, templat ruang/lokasi, bangkitkan dari templat, salin struktur lokasi, duplikasi aset, halaman Verifikasi Aset (ada / tidak ditemukan / aset tambahan) |
+| Identifikasi Awal | Survei aset awal dengan penugasan tim per lokasi, templat ruang/lokasi, **jenis ruang per lokasi** (mis. Kamar 401 = Kamar Deluxe) untuk membangkitkan aset massal per jenis kamar, duplikasi templat, bangkitkan dari templat, salin struktur lokasi, duplikasi aset, halaman Verifikasi Aset (ada / tidak ditemukan / aset tambahan) |
 | Inspeksi | Hasil lulus/pantau/gagal, skor kondisi (bisa memperbarui kondisi fisik aset), meter, temuan, rekomendasi, foto |
 | Permintaan Pemeliharaan | Baru → diverifikasi → work order dibuat / dibatalkan; laporan dari pindai QR ditandai |
 | Work Order | Draf → ditugaskan → dikerjakan → menunggu suku cadang/vendor → selesai → diverifikasi → ditutup; biaya suku cadang/vendor/lain, jam kerja, downtime, akar masalah, foto |
@@ -63,7 +63,31 @@ php artisan serve
 
 Buka `http://localhost:8000/app` (pengguna) atau `/platform` (admin platform). Data contoh ada di `/app/gpch`; akun dan kata sandi lihat [PANDUAN-CPANEL.md](PANDUAN-CPANEL.md#situs-demo--promosi).
 
-Uji otomatis: `php artisan test` (SQLite) atau dengan MySQL: `DB_CONNECTION=mysql DB_DATABASE=... php artisan test`. 15 tes: rumus skor, isolasi antarperusahaan, alur permintaan → work order, status WO, PM, identifikasi awal, QR publik dan label, serta semua halaman untuk setiap peran.
+Uji otomatis: `php artisan test` (SQLite) atau dengan MySQL: `DB_CONNECTION=mysql DB_DATABASE=... php artisan test`. 17 tes: rumus skor, jenis ruang dan templat, isolasi antarperusahaan, alur permintaan → work order, status WO, PM, identifikasi awal, QR publik dan label, serta semua halaman untuk setiap peran.
+
+## Data Grand Pasundan Convention Hotel
+
+`asset:demo` memuat register aset GPCH. Profil diambil dari laporan manajemen GPCH 2026 (Arah GPCH): 164 kamar (155 kamar, 7 suite, 3-Bedroom Pasundan Suite), 11 lantai dengan executive floor lt. 10–11, Malibu Dome 1.152 m², 13 ruang rapat, Cafe Delapan, D'Linda Poolside Cafetaria, kolam renang, fitness & spa, family karaoke, kids corner, parkir ±200 kendaraan.
+
+**Templat per jenis kamar** (menu Konfigurasi › Templat Ruang / Lokasi), sudah ditautkan ke setiap kamar:
+
+| Jenis | Lantai | Unit kamar | Aset per kamar |
+|---|---|---|---|
+| Kamar Standard (3×5 m) | 2–3 | 40 | 13 |
+| Kamar Deluxe (4×8 m) | 4–9 | 96 | 14 |
+| Kamar Executive | 10–11 | 19 | 16 |
+| Junior Suite | 10–11 | 4 | 20 |
+| Grand Family Suite | 11 | 2 | 32 |
+| President Suite | 11 | 1 | 33 |
+| 3-Bedroom Pasundan Suite | 11 | 1 | 43 |
+
+Ditambah templat Koridor & Pantry HK (10 lantai), Ruang Rapat Standar (11 ruang), dan Ruang Rapat Besar (Jayagiri). Sebaran kamar per lantai dan per jenis adalah **proyeksi**; sesuaikan di menu Lokasi (kolom *Jenis ruang*) bila berbeda.
+
+**Cara menambah kamar baru tanpa input ulang:** buat lokasi kamar, pilih *Jenis ruang*, lalu di Register Aset › Identifikasi awal › **Bangkitkan sesuai jenis ruang** (pilih jenis kamar, bisa dibatasi per lantai). Untuk banyak lokasi sekaligus: menu Lokasi › centang › *Tetapkan jenis ruang* lalu *Bangkitkan aset sesuai jenis ruang*. Varian kamar baru: Templat › ⋮ › *Duplikasi templat*.
+
+**Aset utama gedung (±250 unit):** chiller & cooling tower, AHU, genset 2 × 1.000 kVA, trafo & panel, 4 lift + lift banquet + dumbwaiter + gondola, boiler air panas & calorifier, pompa & WTP, STP, instalasi gas dapur, sistem kebakaran, peralatan main kitchen, pastry & banquet, laundry, AV Malibu Dome, TI, CCTV, kolam, fitness & spa. Yang disebut di laporan manajemen (genset, lift #1–#2, STP, gas LPG dapur, pompa & sand filter kolam) berstatus *Terverifikasi*; sisanya *Diharapkan* dengan catatan "Proyeksi", untuk dicek di menu Verifikasi Aset dan dilengkapi merek, nomor seri, tahun, serta nilai perolehan sebenarnya.
+
+Data inspeksi, work order, PM, risiko, dan CAPEX di dalamnya adalah contoh untuk mengisi dasbor.
 
 ## Pemasangan di cPanel
 

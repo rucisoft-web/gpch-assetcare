@@ -17,7 +17,7 @@ class Location extends Model
 
     protected $guarded = ['id'];
 
-    protected array $companyParents = ['parent_id' => Location::class];
+    protected array $companyParents = ['parent_id' => Location::class, 'asset_template_id' => AssetTemplate::class];
 
     protected function casts(): array
     {
@@ -46,6 +46,12 @@ class Location extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'parent_id');
+    }
+
+    /** Jenis ruang: templat aset yang berlaku untuk lokasi ini. */
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(AssetTemplate::class, 'asset_template_id');
     }
 
     public function children(): HasMany
