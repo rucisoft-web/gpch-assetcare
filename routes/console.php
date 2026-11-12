@@ -32,7 +32,8 @@ Artisan::command('asset:create-admin {email} {name} {--password=}', function (st
 
 Artisan::command('asset:demo', function () {
     $this->call('db:seed', ['--class' => 'Database\\Seeders\\DemoSeeder', '--force' => true]);
-    $this->info('Data contoh siap di /app/gpch. Akun: manajer@gpch.demo, teknisi@gpch.demo, supervisor@gpch.demo, gm@gpch.demo (sandi: ASSET_DEMO_PASSWORD).');
+    $this->call('db:seed', ['--class' => 'Database\\Seeders\\GeneralAffairsDemoSeeder', '--force' => true]);
+    $this->info('Data contoh siap di /app/gpch. Akun: manajer@gpch.demo, teknisi@gpch.demo, supervisor@gpch.demo, umum@gpch.demo, gm@gpch.demo (sandi: ASSET_DEMO_PASSWORD).');
 })->purpose('Muat data contoh Grand Pasundan Convention Hotel');
 
 Artisan::command('asset:remove-demo', function () {
@@ -48,6 +49,9 @@ Artisan::command('asset:remove-demo', function () {
 
         // Urutan anak → induk karena kategori dan lokasi dilindungi ON DELETE RESTRICT.
         DB::table('maintenance_requests')->where('company_id', $id)->update(['work_order_id' => null]);
+        foreach (['legal_documents', 'stock_movements', 'supply_requests', 'supply_items', 'vehicle_bookings', 'vehicle_fuel_logs', 'vehicle_services', 'vehicles', 'room_bookings', 'meeting_rooms'] as $table) {
+            DB::table($table)->where('company_id', $id)->delete();
+        }
         foreach (['capex_proposals', 'asset_risks', 'work_orders', 'preventive_plans', 'maintenance_requests', 'inspections', 'assets'] as $table) {
             DB::table($table)->where('company_id', $id)->delete();
         }

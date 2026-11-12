@@ -1,6 +1,6 @@
 # Ruci Asset Care
 
-Aplikasi manajemen aset dan intelijen aset eksekutif untuk hotel, rumah sakit, kampus, gedung kantor, atau pabrik. Satu instalasi melayani banyak perusahaan/properti dengan data yang terpisah.
+Aplikasi manajemen aset, intelijen aset eksekutif, dan layanan bagian umum (ruang rapat, kendaraan dinas, ATK & persediaan, dokumen perizinan) untuk hotel, rumah sakit, kampus, gedung kantor, atau pabrik. Satu instalasi melayani banyak perusahaan/properti dengan data yang terpisah.
 
 Dibangun ulang dari modul Odoo 18 **GPCH Asset Care** (`gpch_asset_care` 18.0.1.3.0, untuk Grand Pasundan Convention Hotel) menjadi produk umum. Rumus skor, alur kerja, dan dasbor eksekutif dipertahankan; hal yang di Odoo khusus hotel (daftar departemen, label "Guest") dijadikan data per perusahaan. Data contoh GPCH disertakan.
 
@@ -26,6 +26,11 @@ Dibangun ulang dari modul Odoo 18 **GPCH Asset Care** (`gpch_asset_care` 18.0.1.
 | Pemeliharaan Preventif | Rencana mingguan s.d. tahunan, penanda terlambat, **Terbitkan WO** yang memajukan jatuh tempo otomatis (tambahan dibanding Odoo) |
 | Register Risiko | Probabilitas × konsekuensi, tingkat otomatis, pemilik, target mitigasi |
 | Usulan CAPEX | Kategori, rekomendasi, skor prioritas berbobot, status draf → diusulkan → disetujui/ditolak → terealisasi |
+| Dasbor Bagian Umum | Rapat dan perjalanan dinas hari ini, persetujuan tertunda, kendaraan siap pakai, jatuh tempo dokumen & kendaraan (H-minus / lewat), stok menipis, nilai persediaan, BBM bulan ini, biaya servis YTD |
+| Ruang Rapat | Daftar ruang (kapasitas, fasilitas), pemesanan dengan **cek bentrok jadwal** dan kapasitas, persetujuan manajer, jadwal mingguan per ruang |
+| Kendaraan Dinas | Data kendaraan, pemesanan → disetujui (kendaraan & pengemudi ditetapkan, cek bentrok) → berangkat → kembali (odometer & jarak), log BBM, riwayat servis, pengingat pajak, STNK, KIR, asuransi, dan servis |
+| ATK & Persediaan | Stok barang (ATK, cetakan, kebersihan, pantry) dengan batas minimum, stok masuk/keluar, stok opname, kartu mutasi, permintaan barang per departemen → disetujui → diserahkan (stok berkurang otomatis, bisa sebagian) |
+| Dokumen & Perizinan | Izin, sertifikat (SLF, SILO), kontrak, polis, pajak; masa berlaku dengan jendela pengingat per dokumen, status berlaku/segera berakhir/kedaluwarsa, berkas PDF privat, tautan ke kendaraan atau aset |
 | Jejak Audit | Siapa mengubah apa (nilai lama → baru untuk kolom penting), pengganti chatter Odoo |
 | Admin Platform (`/platform`) | Perusahaan, akun, akses per perusahaan, reset MFA |
 
@@ -33,8 +38,8 @@ Dibangun ulang dari modul Odoo 18 **GPCH Asset Care** (`gpch_asset_care` 18.0.1.
 
 | Peran | Setara Odoo | Hak |
 |---|---|---|
-| Manajer Aset | Asset Care Manager | Semua, termasuk konfigurasi, CAPEX, hapus |
-| Staf / Teknisi | Asset Care User | Catat dan ubah data operasional; konfigurasi dan CAPEX hanya baca |
+| Manajer | Asset Care Manager | Semua, termasuk konfigurasi, CAPEX, persetujuan ruang/kendaraan/barang, hapus |
+| Staf | Asset Care User | Catat dan ubah data operasional, ajukan pemesanan dan permintaan barang, serahkan barang; konfigurasi dan CAPEX hanya baca |
 | Eksekutif | Asset Care Executive | Hanya baca (di Odoo eksekutif juga bisa menulis; di sini dibuat baca saja untuk pimpinan) |
 
 ## Rumus (sama dengan Odoo)

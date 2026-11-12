@@ -137,8 +137,8 @@ Aplikasi ini **tidak membutuhkan cron permanen**: skor, PM terlambat, dan dasbor
 1. Buka `https://aset.domainanda.com/platform`, masuk sebagai admin platform.
 2. **Perusahaan / Properti** › tambah perusahaan (hotel, rumah sakit, pabrik, kampus, gedung kantor). Departemen dan kategori aset umum dibuat otomatis dan bisa diubah.
 3. **Akun pengguna** › buat akun dan beri akses perusahaan dengan peran:
-   - **Manajer Aset**: semua fitur termasuk konfigurasi, CAPEX, dan menghapus data.
-   - **Staf / Teknisi**: mencatat aset, inspeksi, permintaan, work order, PM, risiko; CAPEX hanya baca.
+   - **Manajer**: semua fitur termasuk konfigurasi, CAPEX, persetujuan pemesanan ruang/kendaraan dan permintaan barang, serta menghapus data.
+   - **Staf**: mencatat aset, inspeksi, permintaan, work order, PM, risiko; memesan ruang dan kendaraan, membuat dan menyerahkan permintaan barang, mencatat BBM, servis, dan dokumen; CAPEX hanya baca.
    - **Eksekutif**: hanya baca (dasbor, register, laporan).
 4. Pengguna masuk di `https://aset.domainanda.com/app`. Urutan kerja yang disarankan:
    1. *Konfigurasi* › Lokasi (berjenjang), Departemen, Kategori Aset, Templat Ruang/Lokasi.
@@ -147,6 +147,11 @@ Aplikasi ini **tidak membutuhkan cron permanen**: skor, PM terlambat, dan dasbor
    4. Lengkapi nilai, umur, skor kesehatan, dan kekritisan di **Register Aset**.
    5. **Cetak label QR** (pilih aset › *Cetak label QR*) lalu tempel di aset. Siapa pun yang memindai bisa melapor kerusakan tanpa login.
    6. Kelola **Permintaan Pemeliharaan → Work Order**, **Pemeliharaan Preventif** (*Terbitkan WO* memajukan jatuh tempo otomatis), **Register Risiko**, dan **Usulan CAPEX**.
+5. Modul **bagian umum**:
+   1. *Konfigurasi* › **Ruang Rapat**: daftar ruang beserta kapasitas dan fasilitas. Karyawan memesan di *Pemesanan Ruang Rapat*; jadwal yang bentrok ditolak otomatis, manajer menyetujui. *Jadwal Ruang Rapat* menampilkan seminggu penuh per ruang.
+   2. *Kendaraan Dinas*: isi nomor polisi, odometer, dan tanggal pajak, STNK, KIR, asuransi, servis. Pemesanan disetujui dengan menetapkan kendaraan dan pengemudi, lalu dicatat *Berangkat* dan *Kembali* (odometer). Di halaman kendaraan ada tab pengisian BBM, riwayat servis, dan dokumen.
+   3. *Stok Barang*: daftar ATK, tinta, bahan kebersihan, dan pantry dengan stok minimum. Pakai *Stok masuk*, *Stok keluar*, atau *Stok opname*; semua tercatat di *Mutasi Stok*. Karyawan mengajukan *Permintaan Barang*, lalu bagian umum menekan **Serahkan barang** dan stok berkurang otomatis.
+   4. *Dokumen & Perizinan*: izin usaha, SLF, SILO, kontrak vendor, polis asuransi, PBB. Isi tanggal berakhir dan berapa hari sebelumnya ingin diingatkan; tab *Perlu tindakan* dan *Dasbor Bagian Umum* menampilkan yang segera berakhir atau sudah lewat.
 
 ### Situs demo / promosi
 
@@ -155,11 +160,15 @@ Isi `ASSET_DEMO=true` (opsional `ASSET_DEMO_PASSWORD`) lalu jalankan `php artisa
 - 297 aset: 30 kamar dan 3 ruang rapat dari templat, plus 36 aset utama (chiller, genset, lift, eskalator, STP, dapur, laundry, AV, TI).
 - Survei aset awal yang sedang berjalan (terverifikasi, tidak ditemukan, aset tambahan, belum diperiksa).
 - 12 bulan riwayat work order preventif/korektif/darurat beserta biaya, 70 inspeksi, 36 permintaan (sebagian dari pindai QR), 36 rencana PM (sebagian terlambat), 15 risiko, dan 8 usulan CAPEX.
+- Bagian umum: 4 ruang rapat dengan sekitar 100 pemesanan, 5 kendaraan dinas (sebagian pajak/servis jatuh tempo) dengan pemesanan, log BBM 6 bulan, dan riwayat servis, 22 barang persediaan dengan 3 bulan mutasi stok (4 di antaranya menipis), 7 permintaan barang, dan 15 dokumen perizinan/kontrak (sebagian segera berakhir).
+
+Instalasi yang sudah berisi data contoh lama cukup menjalankan `php artisan migrate --force` lalu `php artisan asset:demo`; data aset tidak diubah, hanya data bagian umum yang ditambahkan.
 
 | Peran | Email |
 |---|---|
-| Manajer Aset (Chief Engineer) | manajer@gpch.demo |
-| Staf / Teknisi | teknisi@gpch.demo |
+| Manajer (Chief Engineer) | manajer@gpch.demo |
+| Staf (Teknisi) | teknisi@gpch.demo |
+| Staf (General Affairs) | umum@gpch.demo |
 | Staf (Supervisor Housekeeping) | supervisor@gpch.demo |
 | Eksekutif (General Manager) | gm@gpch.demo |
 

@@ -175,3 +175,45 @@
             #14558a 89% 100%); }
     .fi-simple-layout:has(.rac-auth-hero) .fi-simple-main-ctn { align-items: flex-start; padding: 24px 16px 40px; margin-top: -36px; }
 }
+
+/* Bagian umum: daftar agenda, chip status, jadwal ruang mingguan. */
+.rac-panel h3 small a { color: var(--rac-gold); }
+.rac-list { display: flex; flex-direction: column; }
+.rac-list-row { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--rac-line); }
+.rac-list-row:hover { background: var(--rac-track); }
+.rac-list-row:last-child { border-bottom: 0; }
+.rac-list-row .time { font-weight: 700; font-size: .9rem; color: var(--rac-navy); line-height: 1.1; }
+.dark .rac-list-row .time { color: #8cc3ea; }
+.rac-list-row .time small { display: block; font-weight: 400; color: var(--rac-muted); font-size: .72rem; }
+.rac-list-row .body { min-width: 0; }
+.rac-list-row .body b { display: block; font-size: .85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rac-list-row .body small { display: block; color: var(--rac-muted); font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rac-days { width: 52px; text-align: center; font-size: .65rem; text-transform: uppercase; color: var(--rac-muted); border-radius: 8px; padding: 4px 0; background: var(--rac-track); line-height: 1.1; }
+.rac-days b { display: block; font-size: 1rem; color: var(--rac-text); }
+.rac-days.soon { background: #fff3e0; color: var(--rac-warn); } .rac-days.soon b { color: var(--rac-warn); }
+.rac-days.late { background: #ffebee; color: var(--rac-bad); } .rac-days.late b { color: var(--rac-bad); }
+.dark .rac-days.soon, .dark .rac-days.late { background: rgb(39 39 42); }
+
+.rac-chip { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: .7rem; font-weight: 600; background: #eceff1; color: #455a64; white-space: nowrap; }
+.rac-chip.approved, .rac-chip.returned, .rac-chip.issued { background: #e8f5e9; color: var(--rac-good); }
+.rac-chip.requested, .rac-chip.submitted { background: #fff3e0; color: var(--rac-warn); }
+.rac-chip.in_use { background: #e3f2fd; color: #1565c0; }
+
+.rac-schedule-wrap { overflow-x: auto; padding: 0; min-height: auto; }
+.rac-schedule { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; font-size: .8rem; }
+.rac-schedule th, .rac-schedule td { border: 1px solid var(--rac-line); padding: 6px; vertical-align: top; }
+.rac-schedule thead th { background: var(--rac-navy); color: #fff; font-weight: 600; text-align: center; }
+.rac-schedule thead th:first-child { width: 160px; text-align: left; }
+.rac-schedule thead th small { display: block; font-weight: 400; opacity: .8; font-size: .7rem; }
+.rac-schedule thead th.today { background: var(--rac-gold); }
+.rac-schedule tbody th { text-align: left; font-weight: 600; background: var(--rac-track); }
+.rac-schedule tbody th small { display: block; color: var(--rac-muted); font-weight: 400; font-size: .7rem; }
+.rac-schedule td { height: 64px; }
+.rac-schedule td.today { background: #c9963e12; }
+.rac-panel .rac-schedule tbody tr { cursor: default; }
+.rac-panel .rac-schedule tbody tr:hover { background: transparent; }
+.rac-slot { display: block; border-left: 4px solid var(--rac-good); background: #e8f5e9; border-radius: 6px; padding: 4px 6px; margin-bottom: 4px; color: #1f2d3a; }
+.rac-slot.requested { border-left-color: var(--rac-warn); background: #fff3e0; }
+.rac-slot b { display: block; font-size: .72rem; }
+.rac-slot span { display: block; font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rac-slot:hover { filter: brightness(.96); }

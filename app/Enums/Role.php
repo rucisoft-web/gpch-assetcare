@@ -18,8 +18,8 @@ enum Role: string implements HasColor, HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::Manajer => 'Manajer Aset',
-            self::Staf => 'Staf / Teknisi',
+            self::Manajer => 'Manajer',
+            self::Staf => 'Staf',
             self::Eksekutif => 'Eksekutif (hanya baca)',
         };
     }
@@ -33,13 +33,13 @@ enum Role: string implements HasColor, HasLabel
         };
     }
 
-    /** Kelola data induk, konfigurasi, CAPEX, dan penghapusan. */
+    /** Kelola data induk, konfigurasi, CAPEX, persetujuan bagian umum, dan penghapusan. */
     public function canManage(): bool
     {
         return $this === self::Manajer;
     }
 
-    /** Catat dan ubah data operasional (aset, inspeksi, permintaan, work order, risiko). */
+    /** Catat dan ubah data operasional (aset, pemeliharaan, risiko, pemesanan, persediaan, dokumen). */
     public function canOperate(): bool
     {
         return $this !== self::Eksekutif;

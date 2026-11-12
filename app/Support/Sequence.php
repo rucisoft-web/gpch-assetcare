@@ -14,6 +14,9 @@ class Sequence
         'inspection' => 'INS',
         'request' => 'MR',
         'work_order' => 'WO',
+        'room_booking' => 'RR',
+        'vehicle_booking' => 'KD',
+        'supply_request' => 'PB',
     ];
 
     public static function next(string $code, int $companyId, ?int $year = null): string
