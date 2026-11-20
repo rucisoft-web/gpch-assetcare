@@ -2,26 +2,30 @@
 
 namespace App\Models;
 
-use App\Enums\Criticality;
-use App\Models\Concerns\BelongsToCompany;
+use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToProperty;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssetCategory extends Model
 {
-    use BelongsToCompany;
-
-    protected $attributes = ['is_active' => true, 'default_criticality' => 'medium'];
+    use Auditable, BelongsToProperty;
 
     protected $guarded = ['id'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'default_criticality' => Criticality::class, 'expected_life_years' => 'float'];
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 
-    public function assets(): HasMany
+    public function depreciationClass(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->hasMany(Asset::class);
+        return $this->belongsTo(DepreciationClass::class);
+    }
+
+    public function assets(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Asset::class, 'category_id');
     }
 }

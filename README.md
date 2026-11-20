@@ -1,98 +1,66 @@
-# Ruci Asset Care
+# Asset Care
 
-Aplikasi manajemen aset, intelijen aset eksekutif, dan layanan bagian umum (ruang rapat, kendaraan dinas, ATK & persediaan, dokumen perizinan) untuk hotel, rumah sakit, kampus, gedung kantor, atau pabrik. Satu instalasi melayani banyak perusahaan/properti dengan data yang terpisah.
+Aplikasi pengelolaan aset & pemeliharaan — **Laravel 13 · Filament 5 · MySQL 8**. Nama aplikasi generik **Asset Care**; nama, logo, alamat, kontak, warna utama, dan ornamen perusahaan diatur di **Pengaturan › Identitas perusahaan** (instalasi ini terisi identitas Grand Pasundan Convention Hotel, tema Arah GPCH).
 
-Dibangun ulang dari modul Odoo 18 **GPCH Asset Care** (`gpch_asset_care` 18.0.1.3.0, untuk Grand Pasundan Convention Hotel) menjadi produk umum. Rumus skor, alur kerja, dan dasbor eksekutif dipertahankan; hal yang di Odoo khusus hotel (daftar departemen, label "Guest") dijadikan data per perusahaan. Data contoh GPCH disertakan.
+Instalasi: lihat **PANDUAN-LARAGON.md** (cukup jalankan `setup-laragon.bat`).
 
-## Teknologi
+## Isi Rilis A (sudah dibuat)
 
-- PHP 8.3, Laravel 13, Filament 5 (Livewire). Tidak perlu Node.js di server.
-- MySQL 8 / MariaDB 10.6+.
-- Kode QR SVG dengan PHP murni (`chillerlan/php-qrcode`), tanpa GD/Imagick.
-- Tidak ada antrean atau cron permanen; cocok untuk shared hosting cPanel.
-- Foto disimpan privat di `storage/app/private`.
-
-## Fitur
-
-| Area | Isi |
-|---|---|
-| Dasbor Eksekutif | Asset Care Index, 8 KPI, kesehatan per departemen, distribusi kondisi, tren 12 bulan, kepatuhan PM, matriks risiko 5×5, biaya per kategori, daftar perhatian manajemen. **Semua bisa diklik** ke data di baliknya. |
-| Register Aset | Skor kesehatan 0–100 (7 komponen berbobot), kondisi, kekritisan (5 dampak), skor risiko & prioritas otomatis, umur/sisa umur, tab Aset kritis / Perlu perhatian / Mendesak, pengelompokan per departemen/kategori/lokasi/kondisi |
-| QR Asset ID | Token acak per aset, halaman HP publik (identitas, kesehatan, status) dengan formulir lapor kerusakan + foto, label A4 siap cetak (satuan atau massal), buat ulang QR |
-| Identifikasi Awal | Survei aset awal dengan penugasan tim per lokasi, templat ruang/lokasi, bangkitkan dari templat, salin struktur lokasi, duplikasi aset, halaman Verifikasi Aset (ada / tidak ditemukan / aset tambahan) |
-| Inspeksi | Hasil lulus/pantau/gagal, skor kondisi (bisa memperbarui kondisi fisik aset), meter, temuan, rekomendasi, foto |
-| Permintaan Pemeliharaan | Baru → diverifikasi → work order dibuat / dibatalkan; laporan dari pindai QR ditandai |
-| Work Order | Draf → ditugaskan → dikerjakan → menunggu suku cadang/vendor → selesai → diverifikasi → ditutup; biaya suku cadang/vendor/lain, jam kerja, downtime, akar masalah, foto |
-| Pemeliharaan Preventif | Rencana mingguan s.d. tahunan, penanda terlambat, **Terbitkan WO** yang memajukan jatuh tempo otomatis (tambahan dibanding Odoo) |
-| Register Risiko | Probabilitas × konsekuensi, tingkat otomatis, pemilik, target mitigasi |
-| Usulan CAPEX | Kategori, rekomendasi, skor prioritas berbobot, status draf → diusulkan → disetujui/ditolak → terealisasi |
-| Dasbor Bagian Umum | Rapat dan perjalanan dinas hari ini, persetujuan tertunda, kendaraan siap pakai, jatuh tempo dokumen & kendaraan (H-minus / lewat), stok menipis, nilai persediaan, BBM bulan ini, biaya servis YTD |
-| Ruang Rapat | Daftar ruang (kapasitas, fasilitas), pemesanan dengan **cek bentrok jadwal** dan kapasitas, persetujuan manajer, jadwal mingguan per ruang |
-| Kendaraan Dinas | Data kendaraan, pemesanan → disetujui (kendaraan & pengemudi ditetapkan, cek bentrok) → berangkat → kembali (odometer & jarak), log BBM, riwayat servis, pengingat pajak, STNK, KIR, asuransi, dan servis |
-| ATK & Persediaan | Stok barang (ATK, cetakan, kebersihan, pantry) dengan batas minimum, stok masuk/keluar, stok opname, kartu mutasi, permintaan barang per departemen → disetujui → diserahkan (stok berkurang otomatis, bisa sebagian) |
-| Dokumen & Perizinan | Izin, sertifikat (SLF, SILO), kontrak, polis, pajak; masa berlaku dengan jendela pengingat per dokumen, status berlaku/segera berakhir/kedaluwarsa, berkas PDF privat, tautan ke kendaraan atau aset |
-| Jejak Audit | Siapa mengubah apa (nilai lama → baru untuk kolom penting), pengganti chatter Odoo |
-| Admin Platform (`/platform`) | Perusahaan, akun, akses per perusahaan, reset MFA |
-
-### Peran (per perusahaan)
-
-| Peran | Setara Odoo | Hak |
+| Modul spesifikasi | Menu | Isi |
 |---|---|---|
-| Manajer | Asset Care Manager | Semua, termasuk konfigurasi, CAPEX, persetujuan ruang/kendaraan/barang, hapus |
-| Staf | Asset Care User | Catat dan ubah data operasional, ajukan pemesanan dan permintaan barang, serahkan barang; konfigurasi dan CAPEX hanya baca |
-| Eksekutif | Asset Care Executive | Hanya baca (di Odoo eksekutif juga bisa menulis; di sini dibuat baca saja untuk pimpinan) |
+| M01 Lokasi & referensi | Pengaturan, Lokasi & kamar | Gedung › lantai › kamar/ruang, tipe kamar, kategori (~50), departemen, vendor, kebijakan SLA P1–P4, batas persetujuan |
+| M02 Register aset | Aset › Register aset | Kode permanen `GPCH-AST-000001`, kartu aset, verifikasi fisik, aktivasi (field wajib), komponen, riwayat status, dokumen privat, kelompok jumlah |
+| M03 Label QR | Pengendalian Aset | Token acak (hanya hash tersimpan), cetak massal PDF ukuran aktual (A4 50×30, A4 75×50, roll), mulai sel, cetak ulang beralasan, rotasi token, konfirmasi pemasangan per kamar, Scan QR (kamera / foto / ketik kode) |
+| M04 Laporan kerusakan | Pemeliharaan › Laporan kerusakan | Form cepat dari scan QR, saran prioritas, anti-tiket ganda, triase dengan alasan, gabung/tautkan, tolak/duplikat |
+| M05 Work order | Pemeliharaan › Work order | Status terkontrol (draft → persetujuan → tugas → dikerjakan → selesai → verifikasi → tutup, hold/batal/buka ulang), batas persetujuan, pembuat ≠ penyetuju, pekerjaan kritis diverifikasi orang lain, izin kerja, garansi, jam kerja, biaya sementara/final + reversal, foto bukti, cek versi (409) |
+| SLA & notifikasi | Lonceng notifikasi | Respons & pemulihan, kalender 24 jam / jam kerja, hold tidak dihitung, peringatan 80% & terlewat (`assetcare:sla-check`) |
+| Template & generate massal | Template aset kamar, Generate aset kamar | Template berversi (penyusun ≠ pemeriksa), preview selisih, pencocokan aset lama, kandidat draft, idempoten, konflik per kamar, retry |
+| Mutasi aset | Aset › Mutasi aset | Ajukan → setujui → kirim → terima (kondisi) → selesai; slot kamar dilepas, label ditandai perlu cetak ulang |
+| Blokir kamar | Pemeliharaan › Blokir kamar | Usulan Engineering, konfirmasi/lepas oleh Front Office (PMS tetap manual) |
+| M08 Laporan | Laporan & KPI | Backlog & umur, kepatuhan SLA, MTTR bruto/bersih, kegagalan berulang, downtime, register, status label, biaya, penyusutan komersial, daftar fiskal per kelompok, rekonsiliasi & pajak tangguhan, mutasi aset tetap, cek kapitalisasi (khusus izin keuangan), kekurangan dokumen wajib, dokumen akan berakhir, aset tanpa polis, kepatuhan PM, jadwal PM 60 hari, kondisi di luar batas, riwayat pemeliharaan per aset; ekspor CSV aman |
+| Identitas perusahaan | Pengaturan › Identitas perusahaan | Nama & nama singkat ("Asset Care · GPCH"), badan hukum, NPWP, alamat, kontak, logo terang/gelap, favicon, warna utama, judul label QR, ornamen wayang on/off (izin `settings.manage`) |
+| Peta aset | Aset › Peta aset | Pohon lokasi yang bisa diklik (jumlah aset termasuk sub-lokasi), daftar aset per lokasi, sebaran per jenis aset (kelas kebijakan › kategori → di lokasi mana saja), pencarian, total biaya perolehan |
+| Preventive maintenance | Pemeliharaan › Rencana PM | Rencana per aset atau per kategori, interval hari dan/atau meter (jam operasi), checklist, H-lead; WO preventive/inspeksi dibuat otomatis harian 06:00 (`assetcare:pm-generate`), satu WO terbuka per jadwal; jadwal berikutnya dihitung dari tanggal selesai setelah diverifikasi; buat rencana cepat dari interval PM bawaan kategori |
+| Predictive maintenance | Pemeliharaan › Pemantauan kondisi, Parameter kondisi & meter | 8 parameter bawaan (jam operasi, suhu chiller/freezer, tekanan boiler, getaran ISO 10816, suhu panel, tekanan APAR, aki genset) dengan batas waspada/kritis; pembacaan kritis → WO predictive otomatis (tidak dobel), meter tidak boleh turun |
+| Riwayat pemeliharaan | Kartu aset › Riwayat pemeliharaan, Jadwal PM, Kondisi & meter | Insidental (korektif & darurat) vs preventive/inspeksi vs predictive, biaya per WO, PM terakhir |
+| Kebijakan aset tetap (draf Nov 2026) | Aset Tetap & Dokumen › Kelas aset kebijakan, Kelompok harta fiskal | 18 kelas kebijakan + OE/OE-L, umur & residu buku komersial SAK EP (kendaraan 10%), kelompok fiskal PMK 72/2023, umur fiskal bangunan 20/40 th, batas kapitalisasi Rp5 jt / Rp25 jt kelompok & renovasi, tarif pajak tangguhan 22% — **semua dapat diubah**, status draf → disetujui FC |
+| Penyusutan dua buku | Kartu aset › Keuangan & Penyusutan | Garis lurus bulan penuh, bulan pelepasan tidak disusutkan, saldo awal migrasi disusutkan prospektif, override per aset, jadwal tahunan komersial vs fiskal, peringatan batas kapitalisasi. Hanya perhitungan; jurnal tetap di sistem akuntansi |
+| Register dokumen aset | Aset Tetap & Dokumen › Register dokumen; tab Dokumen di kartu aset | Aset boleh punya 0, 1, atau banyak dokumen; satu dokumen (mis. polis) boleh menaungi banyak aset. 64 jenis dokumen, nomor register `LGL-IZN/2026/0001`, berkas berversi (SHA-256, versi lama tidak dihapus), klasifikasi umum/internal/terbatas/rahasia, perpanjangan, penggantian, pencabutan, log buka berkas |
+| Pengingat & K3 | Lonceng notifikasi | H-90/60/30/7/0 (HGB H-3 th, SLF H-180, polis H-60, kontrak = batas pemberitahuan + 30 hari), eskalasi GM mulai H-30, riksa uji K3 kedaluwarsa → banner **Tidak boleh dioperasikan** di kartu aset (`assetcare:document-reminders`, harian 07:00) |
+| M10 Keamanan | Pengaturan | 15 peran & 42 izin (deny by default), log audit dengan alasan & request id, ganti sandi wajib, batas login, MFA opsional, lampiran privat |
 
-## Rumus (sama dengan Odoo)
+## Belum termasuk (Rilis B/C)
 
-- **Kesehatan** = fisik 25% + kepatuhan pemeliharaan 20% + keandalan 15% + sisa umur 15% + keselamatan 10% + keandalan operasional 10% + dokumen 5%. Kondisi: ≥90 sangat baik, ≥75 baik, ≥60 cukup, ≥40 buruk, sisanya kritis.
-- **Kekritisan** = rata-rata 5 dampak (1–5). ≥4,2 kritis, ≥3,3 tinggi, ≥2,2 sedang.
-- **Risiko aset** = (100 − kesehatan) × kekritisan/5. ≥55 mendesak, ≥35 tinggi, ≥18 sedang.
-- **Risiko register** = P × K. ≥20 kritis, ≥12 tinggi, ≥6 sedang.
-- **Prioritas CAPEX** = (tamu 20% + keselamatan 30% + pendapatan 20% + urgensi 30%) × 20.
-- **Asset Care Index** = kesehatan 30% + kepatuhan PM 20% + (100 − 10×risiko kritis) 20% + (100 − 5×WO darurat YTD) 10% + 80×10% + 100×10%. Dua komponen terakhir adalah konstanta di modul Odoo dan dipertahankan apa adanya.
+Suku cadang & stok, stock opname/inventarisasi berkala, disposal, anggaran, API `/api/v1`, mode offline penuh (antrian kiriman), integrasi PMS. Indikator yang bergantung pada modul ini tampil **N/A** dengan keterangan.
 
-## Menjalankan di komputer sendiri
+## Akun contoh
 
-```bash
-composer install
-cp .env.example .env            # ubah DB_*, APP_ENV=local, APP_DEBUG=true, APP_URL
-php artisan key:generate
-php artisan migrate --seed      # ASSET_DEMO=true dan ASSET_ADMIN_* untuk data contoh dan admin
-php artisan serve
-```
+Super Admin: `admin@assetcare.local` / `AssetCare@GPCH2026`. Akun jabatan memakai `GPCH-2026!ganti` (wajib diganti):
 
-Buka `http://localhost:8000/app` (pengguna) atau `/platform` (admin platform). Data contoh ada di `/app/gpch`; akun dan kata sandi lihat [PANDUAN-CPANEL.md](PANDUAN-CPANEL.md#situs-demo--promosi).
-
-Uji otomatis: `php artisan test` (SQLite) atau dengan MySQL: `DB_CONNECTION=mysql DB_DATABASE=... php artisan test`. 15 tes: rumus skor, isolasi antarperusahaan, alur permintaan → work order, status WO, PM, identifikasi awal, QR publik dan label, serta semua halaman untuk setiap peran.
-
-## Pemasangan di cPanel
-
-Lihat [PANDUAN-CPANEL.md](PANDUAN-CPANEL.md).
-
-## Perintah artisan
-
-| Perintah | Fungsi |
+| Email | Peran |
 |---|---|
-| `asset:create-admin email "Nama" --password=...` | Buat admin platform |
-| `asset:demo` | Muat data contoh Grand Pasundan Convention Hotel |
-| `asset:remove-demo` | Hapus data contoh |
-| `asset:doctor` | Periksa kesiapan server (termasuk APP_URL untuk QR) |
-| `asset:summary` | Ringkasan aset dan PM terlambat per perusahaan |
+| gm@grandpasundanhotel.com | General Manager |
+| engineering@grandpasundanhotel.com | Chief Engineering |
+| eng.admin@grandpasundanhotel.com | Asset Controller |
+| teknisi1@ / teknisi2@grandpasundanhotel.com | Teknisi |
+| ca@grandpasundanhotel.com | Finance |
+| fom@grandpasundanhotel.com | HOD + Front Office |
+| fo.supervisor@ / hk.supervisor@grandpasundanhotel.com | Pelapor |
+| owner@, yodi@, edp@, hk@, fbm@, purchasing@, wiwin@ | Owner, perwakilan owner, IT, HOD, Purchasing, Auditor |
 
-## Pemetaan dari Odoo
+Nama, email & batas persetujuan adalah **contoh** — konfirmasi dengan HR/manajemen sebelum dipakai. Data contoh juga berisi kamar 301–310 (Deluxe) dan template `TPL-DLX` (7 unit per kamar) untuk mencoba generate massal.
 
-| Odoo (`gpch.*`) | Laravel |
-|---|---|
-| `asset.location` (complete_name rekursif) | `Location` (nama lengkap diperbarui berantai) |
-| `asset.category` | `AssetCategory` (kode unik per perusahaan) |
-| `asset` + selection `department` | `Asset` + tabel `departments` per perusahaan |
-| `ir.sequence` AST/INS/MR/WO | `App\Support\Sequence` per perusahaan per tahun |
-| `asset.template` / `template.line` | `AssetTemplate` / `AssetTemplateLine` |
-| `asset.survey` / `survey.assignment` | `AssetSurvey` / `AssetSurveyAssignment` |
-| Wizard generate / copy location / duplicate | `App\Services\AssetIntake` + aksi Filament |
-| `asset.inspection`, `maintenance.request`, `maintenance.workorder`, `preventive.plan` | Model setara dengan transisi status yang dijaga |
-| `asset.risk`, `asset.capex` | `AssetRisk`, `CapexProposal` |
-| `asset.dashboard` + OWL | `App\Services\ExecutiveDashboard` + halaman Filament `DasborEksekutif` (agregasi SQL) |
-| Controller QR + laporan PDF | `QrController` (halaman HP, formulir lapor, label cetak HTML/A4) |
-| `mail.thread` tracking | `AuditLog` (trait `Auditable`) |
-| Grup User/Manager/Executive | Peran per perusahaan (`Membership`) |
+## Uji otomatis
+
+`php -d memory_limit=1G vendor/bin/phpunit` (database `asset_care_test`) — 24 skenario. Pemeliharaan terencana (5): WO PM sekali saja H-7 & jadwal maju dari tanggal selesai, checklist PM wajib lengkap, PM berbasis jam operasi, WO predictive tunggal & validasi pembacaan, pembatalan tidak memajukan jadwal, halaman & laporan. Identitas perusahaan (1). Penyusutan, dokumen & peta aset (10): contoh kebijakan FFE-W Rp70 jt (komersial Rp10 jt, fiskal Rp17,5 jt, koreksi −Rp7,5 jt), residu kendaraan, bulan pelepasan, saldo awal prospektif, umur fiskal bangunan dapat diubah, status & deduplikasi pengingat, blokir K3, klasifikasi, alur unggah/perpanjang/ganti, render halaman & ekspor laporan. Operasional (8): AC17 (10 kamar → 70 kandidat), AC18 (kirim ulang tanpa duplikat), AC19 (konflik per kamar), AC20 (pencocokan aset lama), alur laporan → WO lengkap dengan kontrol, PDF label + QR + pemasangan + rotasi, AC27 mutasi, akses ditolak secara default.
+
+## Catatan teknis
+
+- Kebijakan aset tetap masih **draf**: ubah di Kelas aset kebijakan › *Batas kapitalisasi & umur fiskal*, lalu set status *Disetujui FC*. `assetcare:doctor` menandai bila belum disetujui.
+- Penurunan nilai (impairment) mengurangi nilai buku komersial pada tahun dicatat; belum disebar ulang atas sisa umur.
+- Dokumen wajib per kelas hanya laporan kekurangan, tidak memblokir penyimpanan aset.
+
+- Waktu disimpan UTC, ditampilkan WIB (`ASSETCARE_DISPLAY_TIMEZONE`).
+- Struktur sudah multi-properti (`property_id`), data awal satu hotel.
+- URL label = `ASSETCARE_QR_BASE_URL/q/{token}`; tentukan domain final sebelum cetak massal.
+- Pembaca QR memakai BarcodeDetector bawaan browser dengan cadangan jsQR (Apache-2.0, `public/js/vendor`).

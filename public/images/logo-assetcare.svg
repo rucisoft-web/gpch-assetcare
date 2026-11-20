@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="56" viewBox="0 0 220 56" role="img" aria-label="Asset Care">
+  <rect x="2" y="6" width="44" height="44" rx="11" fill="#1F6F5C"/>
+  <path d="M24 15 L35 21 V35 L24 41 L13 35 V21 Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/>
+  <path d="M13 21 L24 27 L35 21 M24 27 V41" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/>
+  <circle cx="37" cy="40" r="6.5" fill="#E2B04A" stroke="#1F6F5C" stroke-width="2"/>
+  <path d="M34.3 40.2 L36.3 42.2 L39.9 38.4" fill="none" stroke="#1F6F5C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="58" y="36" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#1C2B27">Asset<tspan fill="#1F6F5C"> Care</tspan></text>
+</svg>

@@ -2,34 +2,30 @@
 
 namespace App\Models;
 
-use App\Enums\Role;
-use Database\Factories\UserFactory;
+use App\Models\Concerns\Auditable;
+use App\Support\CurrentProperty;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasTenants;
+use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Collection;
 use SensitiveParameter;
 
-class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasTenants
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasName
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use Auditable, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'is_active', 'is_platform_admin'];
-
-    protected $attributes = ['is_active' => true, 'is_platform_admin' => false];
+    protected $guarded = ['id'];
 
     protected $hidden = ['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'];
 
-    /** @var array<int, Membership|null> */
-    protected array $membershipCache = [];
+    /** @var array<string,array<int,string>> */
+    protected array $permissionCache = [];
 
     protected function casts(): array
     {
@@ -37,67 +33,121 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
-            'is_platform_admin' => 'boolean',
+            'must_change_password' => 'boolean',
+            'password_changed_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'labor_rate' => 'decimal:2',
             'app_authentication_secret' => 'encrypted',
             'app_authentication_recovery_codes' => 'encrypted:array',
         ];
     }
 
-    public function memberships(): HasMany
+    public function property(): BelongsTo
     {
-        return $this->hasMany(Membership::class)->withoutGlobalScopes();
+        return $this->belongsTo(Property::class);
     }
 
-    public function activeMembership(Company|int|null $company): ?Membership
+    public function department(): BelongsTo
     {
-        $companyId = $company instanceof Company ? $company->id : $company;
-
-        if ($companyId === null) {
-            return null;
-        }
-
-        if (! array_key_exists($companyId, $this->membershipCache)) {
-            $this->membershipCache[$companyId] = Membership::withoutGlobalScopes()
-                ->where('company_id', $companyId)
-                ->where('user_id', $this->id)
-                ->where('is_active', true)
-                ->first();
-        }
-
-        return $this->membershipCache[$companyId];
+        return $this->belongsTo(Department::class);
     }
 
-    public function roleIn(Company|int|null $company): ?Role
+    public function roles(): BelongsToMany
     {
-        return $this->activeMembership($company)?->role;
+        return $this->belongsToMany(Role::class, 'role_user')->withPivot('property_id');
     }
-
-    // --- Filament -------------------------------------------------------
 
     public function canAccessPanel(Panel $panel): bool
     {
-        if (! $this->is_active) {
-            return false;
+        return (bool) $this->is_active;
+    }
+
+    public function getFilamentName(): string
+    {
+        return $this->name;
+    }
+
+    /** Peran yang berlaku untuk properti aktif (global + khusus properti). */
+    public function activeRoles(?int $propertyId = null)
+    {
+        $propertyId ??= app(CurrentProperty::class)->id();
+        $this->loadMissing('roles.permissions');
+
+        return $this->roles->filter(fn ($r) => $r->pivot->property_id === null || (int) $r->pivot->property_id === (int) $propertyId);
+    }
+
+    /** @return array<int,string> */
+    public function permissionSlugs(?int $propertyId = null): array
+    {
+        $key = (string) ($propertyId ?? app(CurrentProperty::class)->id());
+        if (! isset($this->permissionCache[$key])) {
+            $roles = $this->activeRoles($propertyId);
+            $this->permissionCache[$key] = $roles->contains('slug', 'super-admin')
+                ? Permission::pluck('slug')->all()
+                : $roles->flatMap(fn ($r) => $r->permissions->pluck('slug'))->unique()->values()->all();
         }
 
-        return match ($panel->getId()) {
-            'platform' => $this->is_platform_admin,
-            default => true,
-        };
+        return $this->permissionCache[$key];
     }
 
-    public function getTenants(Panel $panel): array|Collection
+    public function hasPermission(string $slug): bool
     {
-        $ids = $this->memberships()->where('is_active', true)->pluck('company_id');
-
-        return Company::query()->whereIn('id', $ids)->where('is_active', true)->orderBy('name')->get();
+        return $this->is_active && ($this->isSuperAdmin() || in_array($slug, $this->permissionSlugs(), true));
     }
 
-    public function canAccessTenant(Model $tenant): bool
+    public function hasAnyPermission(array $slugs): bool
     {
-        return $this->is_active && $tenant->is_active && $this->activeMembership($tenant) !== null;
+        foreach ($slugs as $s) {
+            if ($this->hasPermission($s)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
+    public function hasRole(string $slug): bool
+    {
+        $this->loadMissing('roles');
+
+        return $this->roles->contains('slug', $slug);
+    }
+
+    /** Hanya berperan Petugas Identifikasi Aset → hanya memakai menu Lapangan (/lapangan), tidak masuk panel admin. */
+    public function isFieldOnly(): bool
+    {
+        $this->loadMissing('roles');
+
+        return $this->roles->isNotEmpty() && $this->roles->every(fn ($r) => $r->slug === 'field-officer');
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super-admin');
+    }
+
+    public function canSeeFinancials(): bool
+    {
+        return $this->hasPermission('asset.view_financial');
+    }
+
+    public function flushPermissionCache(): void
+    {
+        $this->permissionCache = [];
+        $this->unsetRelation('roles');
+    }
+
+    public function getRoleNamesAttribute(): string
+    {
+        return $this->roles->pluck('name')->join(', ');
+    }
+
+    public function getLabelAttribute(): string
+    {
+        return $this->name.($this->job_title ? ' — '.$this->job_title : '');
+    }
+
+    // ---- Filament MFA (aplikasi autentikator)
     public function getAppAuthenticationSecret(): ?string
     {
         return $this->app_authentication_secret;
@@ -123,5 +173,12 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     {
         $this->app_authentication_recovery_codes = $codes;
         $this->save();
+    }
+
+    /** Pengguna aktif dengan izin tertentu (untuk notifikasi & pilihan PIC). */
+    public static function withPermission(string $slug)
+    {
+        return static::where('is_active', true)->with('roles.permissions')->get()
+            ->filter(fn (User $u) => $u->hasPermission($slug))->values();
     }
 }

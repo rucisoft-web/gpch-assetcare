@@ -2,86 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Priority;
-use App\Enums\RequestType;
-use App\Models\Asset;
-use App\Models\MaintenanceRequest;
-use App\Models\User;
-use App\Support\CurrentCompany;
+use App\Services\ScanService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\View\View;
 
-/**
- * Halaman publik hasil pindai QR: identitas aset dan formulir lapor kerusakan tanpa login.
- * Token QR acak (40 karakter), bukan ID basis data.
- */
 class QrController extends Controller
 {
-    protected function findAsset(string $token): Asset
+    public function show(Request $request, string $token, ScanService $scan)
     {
-        $asset = Asset::withoutGlobalScopes()
-            ->with(['location', 'company', 'category'])
-            ->where('qr_token', $token)
-            ->where('is_active', true)
-            ->first();
+        if (! $request->user()) {
+            // simpan tujuan, lalu login (SSO/login biasa)
+            session()->put('url.intended', $request->fullUrl());
 
-        abort_if(! $asset || ! $asset->company?->is_active, 404);
+            return redirect('/admin/login');
+        }
+        // petugas identifikasi membuka aset di menu Lapangan
+        if ($request->user()->isFieldOnly() || $request->query('m') === 'lapangan') {
+            return redirect()->route('field.resolve', ['kode' => url('/q/'.$token)]);
+        }
+        $r = $scan->handle(url('/q/'.$token), $request->user(), 'url');
 
-        return $asset;
-    }
-
-    public function show(string $token): View
-    {
-        return view('qr.show', ['asset' => $this->findAsset($token), 'token' => $token]);
-    }
-
-    public function report(Request $request, string $token): View
-    {
-        $asset = $this->findAsset($token);
-
-        $data = $request->validate([
-            'request_type' => ['required', Rule::enum(RequestType::class)],
-            'priority' => ['required', Rule::enum(Priority::class)],
-            'description' => ['required', 'string', 'min:5', 'max:2000'],
-            'reporter_name' => ['nullable', 'string', 'max:100'],
-            'reporter_contact' => ['nullable', 'string', 'max:100'],
-            'photo' => ['nullable', 'image', 'max:'.config('asset.uploads.max_kb')],
-            'website' => ['prohibited'], // perangkap bot
-        ]);
-
-        $maintenance = app(CurrentCompany::class)->runAs($asset->company, function () use ($asset, $data, $request) {
-            return MaintenanceRequest::create([
-                'asset_id' => $asset->id,
-                'request_type' => $data['request_type'],
-                'priority' => $data['priority'],
-                'description' => '[Laporan QR] '.trim($data['description']),
-                'reporter_id' => $request->user() instanceof User && $request->user()->activeMembership($asset->company_id) ? $request->user()->id : null,
-                'reporter_name' => $data['reporter_name'] ?? null,
-                'reporter_contact' => $data['reporter_contact'] ?? null,
-                'via_qr' => true,
-                'photo_before' => $request->file('photo')?->store('permintaan', 'local'),
-            ]);
-        });
-
-        return view('qr.thanks', ['asset' => $asset, 'request' => $maintenance, 'token' => $token]);
-    }
-
-    /** Label QR siap cetak (A4, 2 kolom). Hanya aset dari perusahaan tempat pengguna menjadi anggota. */
-    public function labels(Request $request): View
-    {
-        $ids = collect(explode(',', (string) $request->query('ids')))->map(fn ($id) => (int) $id)->filter()->take(500);
-        $companyIds = $request->user()->memberships()->where('is_active', true)->pluck('company_id');
-
-        $assets = Asset::withoutGlobalScopes()
-            ->with(['location', 'company'])
-            ->whereIn('id', $ids)
-            ->whereIn('company_id', $companyIds)
-            ->orderBy('code')
-            ->get();
-
-        abort_if($assets->isEmpty(), 404);
-
-        return view('qr.labels', ['assets' => $assets]);
+        return $r['url'] ? redirect($r['url']) : response()->view('qr.invalid', ['message' => $r['message']], 410);
     }
 }

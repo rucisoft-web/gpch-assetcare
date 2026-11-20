@@ -1,5 +1,31 @@
 # Release Notes
 
+## Asset Care — data awal (16 November 2026)
+
+- Perintah `assetcare:import-initial` untuk workbook data awal: membuat pohon lokasi, aset draft (idempoten lewat Kunci), kelompok jumlah, label QR, dan memasang foto sebagai foto utama + lampiran.
+- Kartu aset menampilkan foto utama (foto aset atau foto terbaru di tab Foto & dokumen).
+- 14 kategori baru dari inventaris departemen (furnitur kantor, UPS, exhaust fan, filter air, peralatan dapur stainless, alat kerja, aksesori AV, dekorasi, elektronik umum, tabung gas, klinik, HT, karaoke, peralatan kantor) dengan kelas kebijakan & interval PM bawaan.
+
+## Asset Care — 16 November 2026
+
+- Nama aplikasi generik **Asset Care**; halaman Pengaturan › Identitas perusahaan (nama, badan hukum, NPWP, alamat, kontak, logo, favicon, warna utama, judul label QR, ornamen).
+- Peta aset: pohon lokasi dengan jumlah aset termasuk sub-lokasi, dan sebaran per jenis aset.
+- Preventive maintenance: rencana PM per aset/kategori berbasis hari dan/atau jam operasi, checklist, WO otomatis harian, jadwal maju setelah verifikasi.
+- Predictive maintenance: parameter kondisi dengan batas waspada/kritis, pembacaan kritis membuat WO predictive.
+- Kartu aset: Riwayat pemeliharaan (insidental vs terencana vs predictive), Jadwal PM, Kondisi & meter. Laporan kepatuhan PM, jadwal PM, kondisi di luar batas, riwayat per aset.
+- Izin baru: `pm.manage`, `condition.record`.
+
+
+## Asset Care GPCH — November 2026 (kick off aset tetap 20 Nov)
+
+- Kebijakan aset tetap GPCH: kelas aset, kelompok harta fiskal PMK 72/2023, batas kapitalisasi, umur fiskal bangunan, tarif pajak tangguhan (dapat diubah, status draf/disetujui).
+- Data keuangan aset: perlakuan kapitalisasi, override umur/residu/kelompok, saldo awal migrasi, penurunan nilai, pelepasan; jadwal penyusutan komersial vs fiskal di kartu aset.
+- Laporan: penyusutan komersial, daftar fiskal per kelompok, rekonsiliasi & pajak tangguhan, mutasi aset tetap, cek kapitalisasi, kekurangan dokumen wajib, dokumen akan berakhir, aset tanpa polis.
+- Register dokumen aset: kartu dokumen, berkas berversi SHA-256, tautan banyak-ke-banyak dengan aset, klasifikasi akses, perpanjangan, penggantian, pencabutan.
+- Pengingat masa berlaku harian dengan eskalasi GM; banner "Tidak boleh dioperasikan" untuk riksa uji K3 kedaluwarsa.
+- 5 izin baru (policy.manage, document.view, document.view_restricted, document.manage, document.escalation).
+
+
 ## [Unreleased](https://github.com/laravel/laravel/compare/v13.10.1...13.x)
 
 ## [v13.10.1](https://github.com/laravel/laravel/compare/v13.10.0...v13.10.1) - 2026-08-25

@@ -3,51 +3,62 @@
 namespace App\Models\Concerns;
 
 use App\Models\AuditLog;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 
-/**
- * Jejak perubahan (pengganti chatter/tracking Odoo).
- *
- * Kolom pada $tracked dicatat beserta nilai lama → baru; kolom lain hanya namanya.
- */
+/** Mencatat buat/ubah/hapus ke audit_logs (aktor, waktu, alasan, nilai sebelum & sesudah). */
 trait Auditable
 {
+    /** Alasan perubahan untuk dicatat bersama audit (opsional, diisi sebelum save). */
+    public ?string $auditReason = null;
+
     public static function bootAuditable(): void
     {
-        static::created(fn (Model $model) => AuditLog::record('dibuat', $model));
-
-        static::updated(function (Model $model) {
-            $changes = [];
-
-            foreach (array_keys($model->getChanges()) as $field) {
-                if (in_array($field, ['updated_at', 'created_at'], true)) {
-                    continue;
-                }
-
-                $changes[$field] = in_array($field, $model->tracked ?? [], true)
-                    ? ['dari' => static::auditValue($model->getOriginal($field)), 'ke' => static::auditValue($model->getAttribute($field))]
-                    : null;
+        static::created(fn ($m) => $m->writeAudit('dibuat', [], $m->auditAttributes($m->getAttributes())));
+        static::updated(function ($m) {
+            $changes = $m->auditAttributes($m->getChanges());
+            unset($changes['updated_at'], $changes['version']);
+            if ($changes === []) {
+                return;
             }
-
-            if ($changes !== []) {
-                AuditLog::record('diubah', $model, $changes);
-            }
+            $old = array_intersect_key($m->auditAttributes($m->getOriginal()), $changes);
+            $m->writeAudit('diubah', $old, $changes);
         });
-
-        static::deleted(fn (Model $model) => AuditLog::record('dihapus', $model));
+        static::deleted(fn ($m) => $m->writeAudit('dihapus', $m->auditAttributes($m->getOriginal()), []));
     }
 
-    protected static function auditValue(mixed $value): mixed
+    protected function auditAttributes(array $attrs): array
     {
-        return match (true) {
-            $value instanceof \BackedEnum => $value->value,
-            $value instanceof \DateTimeInterface => $value->format('Y-m-d H:i'),
-            default => $value,
-        };
+        foreach (['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes', 'token_ciphertext', 'token_hash'] as $k) {
+            if (array_key_exists($k, $attrs)) {
+                $attrs[$k] = '***';
+            }
+        }
+
+        return $attrs;
     }
 
-    public function auditLabel(): string
+    public function writeAudit(string $event, array $old, array $new): void
     {
-        return trim(($this->code ?? $this->number ?? '').' '.($this->name ?? ''));
+        if (! config('assetcare.audit_enabled') || ! Auth::check()) {
+            return; // seeder & perintah konsol tanpa pengguna tidak dicatat
+        }
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'property_id' => $this->property_id ?? null,
+            'event' => $event,
+            'auditable_type' => static::class,
+            'auditable_id' => $this->getKey(),
+            'auditable_label' => method_exists($this, 'auditLabel') ? $this->auditLabel() : ($this->asset_code ?? $this->number ?? $this->code ?? $this->name ?? null),
+            'old_values' => $old ?: null,
+            'new_values' => $new ?: null,
+            'reason' => $this->auditReason,
+            'request_id' => request()?->attributes->get('request_id'),
+            'url' => mb_substr((string) Request::fullUrl(), 0, 500),
+            'ip_address' => Request::ip(),
+            'user_agent' => mb_substr((string) Request::userAgent(), 0, 500),
+            'created_at' => now(),
+        ]);
+        $this->auditReason = null;
     }
 }
