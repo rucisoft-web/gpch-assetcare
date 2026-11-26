@@ -2,26 +2,25 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToCompany;
+use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToProperty;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/** Departemen / unit kerja pemilik aset (diatur per perusahaan). */
 class Department extends Model
 {
-    use BelongsToCompany;
-
-    protected $attributes = ['is_active' => true];
+    use Auditable, BelongsToProperty;
 
     protected $guarded = ['id'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 
-    public function assets(): HasMany
+    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Asset::class);
+        return $this->hasMany(User::class);
     }
 }

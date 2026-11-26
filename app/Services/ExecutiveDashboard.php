@@ -2,179 +2,243 @@
 
 namespace App\Services;
 
-use App\Enums\Condition;
-use App\Enums\Criticality;
-use App\Enums\RiskLevel;
-use App\Enums\RiskState;
-use App\Enums\WorkType;
+use App\Filament\Resources\AssetDocuments\AssetDocumentResource;
+use App\Filament\Resources\Assets\AssetResource;
+use App\Filament\Resources\WorkOrders\WorkOrderResource;
 use App\Models\Asset;
-use App\Models\AssetRisk;
-use App\Models\CapexProposal;
-use App\Models\PreventivePlan;
+use App\Models\AssetCategory;
+use App\Models\AssetDocument;
+use App\Models\Department;
+use App\Models\Location;
+use App\Models\WoCostLine;
 use App\Models\WorkOrder;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Data Dasbor Eksekutif (setara gpch.asset.dashboard di Odoo), dihitung dengan agregasi SQL
- * untuk perusahaan aktif.
+ * Data dashboard pimpinan: ringkasan kondisi aset, pemeliharaan, biaya & dokumen.
+ * Setiap titik grafik membawa URL ke daftar terfilter, sehingga pimpinan dapat menelusuri sampai ke data rinci.
  */
 class ExecutiveDashboard
 {
-    public function data(?CarbonImmutable $today = null): array
+    private const PALETTE = ['#006632', '#B8862B', '#34506E', '#A8432A', '#4F6B3A', '#7A4B8C', '#2F8A57', '#D9B76A', '#5E7E9C', '#C9774F', '#8A8F3A', '#6E5F52'];
+
+    public function build(bool $financial): array
     {
-        $today ??= CarbonImmutable::today();
-        $ytdStart = $today->startOfYear();
+        $today = CarbonImmutable::now(\App\Support\Fmt::tz())->startOfDay();
+        $assets = Asset::query()->whereNotIn('lifecycle_status', ['disposed', 'lost']);
+        $total = (clone $assets)->count();
+        $verified = (clone $assets)->where('verification_status', 'verified')->count();
+        $bad = (clone $assets)->whereIn('condition_grade', ['D', 'E'])->count();
+        $down = (clone $assets)->whereIn('operational_status', ['out_of_service', 'under_repair'])->count();
+        $critical = (clone $assets)->where('criticality', 'critical')->count();
+        $open = WorkOrder::whereIn('status', WorkOrder::OPEN)->count();
+        $overdue = WorkOrder::whereIn('status', WorkOrder::OPEN)->where('due_at', '<', now())->count();
+        $docsDue = AssetDocument::whereIn('status', ['expiring', 'expired'])->count();
+        $cost90 = $financial ? (float) WoCostLine::whereHas('workOrder', fn ($q) => $q->where('created_at', '>=', $today->subDays(90)))->sum(DB::raw('quantity * unit_cost')) : null;
 
-        $assets = Asset::query()->where('is_active', true);
-        $totalAssets = (clone $assets)->count();
-        $avgHealth = $totalAssets ? round((float) (clone $assets)->avg('health_score'), 1) : 0.0;
-
-        $openWorkOrders = WorkOrder::query()->whereNotIn('state', ['closed', 'cancel'])->count();
-        $pmTotal = PreventivePlan::query()->where('is_active', true)->count();
-        $overduePm = PreventivePlan::query()->overdue()->count();
-        $pmCompliance = $pmTotal ? round(($pmTotal - $overduePm) / $pmTotal * 100, 1) : 100.0;
-
-        $ytdDone = WorkOrder::query()->whereIn('state', WorkOrder::COMPLETED_STATES)->where('completed_at', '>=', $ytdStart);
-        $maintenanceCost = (float) (clone $ytdDone)->sum('total_cost');
-        $capexRequired = (float) CapexProposal::query()->whereIn('state', CapexProposal::OPEN_STATES)->sum('estimated_cost');
-
-        $openRisks = AssetRisk::query()->where('state', '!=', RiskState::Closed->value);
-        $criticalRiskCount = (clone $openRisks)->where('level', RiskLevel::Critical->value)->count();
-        $emergencyCount = WorkOrder::query()->where('work_type', WorkType::Emergency->value)->where('planned_at', '>=', $ytdStart)->count();
-
-        // Indeks gabungan 0–100; bobot sama dengan modul Odoo (komponen 80×10% dan CAPEX 100×10% adalah konstanta di sana).
-        $index = round(
-            $avgHealth * 0.30
-            + $pmCompliance * 0.20
-            + max(0, 100 - $criticalRiskCount * 10) * 0.20
-            + max(0, 100 - $emergencyCount * 5) * 0.10
-            + 80 * 0.10
-            + 100 * 0.10,
-            1,
-        );
+        $woUrl = fn (array $filters = [], string $tab = 'semua') => WorkOrderResource::getUrl('index', ['tab' => $tab, 'filters' => $filters]);
+        $assetUrl = fn (array $filters) => AssetResource::getUrl('index', ['filters' => $filters]);
 
         return [
-            'today' => $today,
-            'ytd_start' => $ytdStart,
-            'kpi' => [
-                'total_assets' => $totalAssets,
-                'asset_value' => (float) (clone $assets)->sum('acquisition_cost'),
-                'asset_health' => $avgHealth,
-                'critical_assets' => (clone $assets)->needsAttention()->count(),
-                'open_workorders' => $openWorkOrders,
-                'overdue_pm' => $overduePm,
-                'maintenance_cost' => $maintenanceCost,
-                'capex_required' => $capexRequired,
-                'asset_care_index' => max(0, min(100, $index)),
-                'pm_compliance' => $pmCompliance,
-            ],
-            'health_by_department' => $this->healthByDepartment(),
-            'condition_distribution' => $this->conditionDistribution(),
-            'cost_by_category' => $this->costByCategory($ytdStart),
-            'risk_matrix' => $this->riskMatrix(),
-            'maintenance_trend' => $this->trend($today),
-            'attention' => Asset::query()->where('is_active', true)->with('location')
-                ->orderByDesc('risk_score')->limit(6)->get(),
+            'generated' => now(),
+            'kpi' => array_values(array_filter([
+                ['label' => 'Aset terdaftar', 'value' => $total, 'sub' => number_format($critical, 0, ',', '.').' berkritikalitas kritis', 'url' => AssetResource::getUrl('index'), 'tone' => 'hijau'],
+                ['label' => 'Terverifikasi fisik', 'value' => $total ? round($verified / $total * 100).'%' : '0%', 'sub' => number_format($total - $verified, 0, ',', '.').' belum diverifikasi', 'url' => $assetUrl(['verification_status' => ['value' => 'unverified']]), 'tone' => $total && $verified / $total >= .8 ? 'hijau' : 'kuning'],
+                ['label' => 'Kondisi D/E', 'value' => $bad, 'sub' => 'perlu kajian penggantian', 'url' => $assetUrl(['condition_grade' => ['value' => 'D']]), 'tone' => $bad ? 'merah' : 'hijau'],
+                ['label' => 'Tidak beroperasi / diperbaiki', 'value' => $down, 'sub' => 'aset sedang tidak tersedia', 'url' => $assetUrl(['operational_status' => ['value' => 'out_of_service']]), 'tone' => $down ? 'kuning' : 'hijau'],
+                ['label' => 'Work order terbuka', 'value' => $open, 'sub' => $overdue.' melewati target SLA', 'url' => $woUrl([], 'terbuka'), 'tone' => $overdue ? 'merah' : 'hijau'],
+                ['label' => 'Dokumen akan/sudah berakhir', 'value' => $docsDue, 'sub' => 'izin, polis, kontrak', 'url' => AssetDocumentResource::getUrl('index', ['filters' => ['status' => ['values' => ['expiring', 'expired']]]]), 'tone' => $docsDue ? 'kuning' : 'hijau'],
+                $financial ? ['label' => 'Biaya pemeliharaan 90 hari', 'value' => 'Rp '.number_format($cost90 / 1e6, 1, ',', '.').' jt', 'sub' => 'material, vendor & tenaga', 'url' => $woUrl(['status' => ['values' => ['closed']]]), 'tone' => 'emas'] : null,
+            ])),
+            'charts' => array_values(array_filter([
+                $this->conditionChart($assetUrl),
+                $this->operationalChart($assetUrl),
+                $this->categoryChart($assetUrl),
+                $this->locationChart($assetUrl),
+                $this->verificationByDept($assetUrl),
+                $this->woTrend($today, $woUrl),
+                $this->woByType($woUrl),
+                $this->documentStatus(),
+                $this->topFailing(),
+                $financial ? $this->costByMonth($today, $woUrl) : null,
+            ])),
         ];
     }
 
-    protected function healthByDepartment(): array
+    private function chart(string $id, string $title, string $type, array $labels, array $datasets, array $urls, string $hint, array $opts = []): array
     {
-        return Asset::query()->where('assets.is_active', true)
-            ->leftJoin('departments', 'departments.id', '=', 'assets.department_id')
-            ->selectRaw('assets.department_id as id, COALESCE(departments.name, ?) as label, AVG(assets.health_score) as value, COUNT(*) as total', ['Tanpa departemen'])
-            ->groupBy('assets.department_id', 'departments.name')
-            ->orderBy('value')
-            ->get()
-            ->map(fn ($row) => ['id' => $row->id, 'label' => $row->label, 'value' => round((float) $row->value, 1), 'total' => (int) $row->total])
-            ->all();
+        return ['id' => $id, 'title' => $title, 'type' => $type, 'labels' => array_values($labels), 'datasets' => $datasets, 'urls' => $urls, 'hint' => $hint, 'opts' => $opts];
     }
 
-    protected function conditionDistribution(): array
+    private function conditionChart(callable $assetUrl): array
     {
-        $counts = Asset::query()->where('is_active', true)->selectRaw('`condition` as c, COUNT(*) as n')->groupBy('condition')->pluck('n', 'c');
-        $total = max(1, $counts->sum());
+        $rows = Asset::query()->whereNotIn('lifecycle_status', ['disposed', 'lost'])->select('condition_grade', DB::raw('count(*) n'))->groupBy('condition_grade')->pluck('n', 'condition_grade');
+        $labels = $vals = $urls = [];
+        foreach (Asset::CONDITIONS as $k => $label) {
+            $labels[] = $label;
+            $vals[] = (int) ($rows[$k] ?? 0);
+            $urls[] = $assetUrl(['condition_grade' => ['value' => $k]]);
+        }
+        if ($n = (int) ($rows[''] ?? $rows[null] ?? 0)) {
+            $labels[] = 'Belum dinilai';
+            $vals[] = $n;
+            $urls[] = AssetResource::getUrl('index');
+        }
 
-        return collect(Condition::cases())
-            ->filter(fn (Condition $c) => isset($counts[$c->value]))
-            ->map(fn (Condition $c) => [
-                'key' => $c->value,
-                'label' => $c->getLabel(),
-                'value' => (int) $counts[$c->value],
-                'percent' => round($counts[$c->value] / $total * 100),
-            ])->values()->all();
+        return $this->chart('kondisi', 'Kondisi fisik aset', 'doughnut', $labels, [['data' => $vals, 'backgroundColor' => ['#2F7A3F', '#8BAE5A', '#D9B76A', '#C9774F', '#A8432A', '#BDB3A4']]], $urls, 'Klik irisan untuk melihat daftar aset dengan kondisi tersebut.');
     }
 
-    protected function costByCategory(CarbonImmutable $ytdStart): array
+    private function operationalChart(callable $assetUrl): array
     {
-        $rows = WorkOrder::query()
-            ->join('assets', 'assets.id', '=', 'work_orders.asset_id')
-            ->join('asset_categories', 'asset_categories.id', '=', 'assets.asset_category_id')
-            ->whereIn('work_orders.state', WorkOrder::COMPLETED_STATES)
-            ->where('work_orders.completed_at', '>=', $ytdStart)
-            ->selectRaw('asset_categories.id as id, asset_categories.name as label, SUM(work_orders.total_cost) as value')
-            ->groupBy('asset_categories.id', 'asset_categories.name')
-            ->orderByDesc('value')
-            ->limit(8)
-            ->get();
+        $rows = Asset::query()->whereNotIn('lifecycle_status', ['disposed', 'lost'])->select('operational_status', DB::raw('count(*) n'))->groupBy('operational_status')->pluck('n', 'operational_status');
+        $labels = $vals = $urls = [];
+        foreach (Asset::OPERATIONAL as $k => $label) {
+            $labels[] = $label;
+            $vals[] = (int) ($rows[$k] ?? 0);
+            $urls[] = $assetUrl(['operational_status' => ['value' => $k]]);
+        }
 
-        $max = max(1, (float) $rows->max('value'));
-
-        return $rows->map(fn ($row) => [
-            'id' => $row->id, 'label' => $row->label, 'value' => (float) $row->value, 'percent' => round($row->value / $max * 100, 1),
-        ])->all();
+        return $this->chart('operasional', 'Status operasional', 'doughnut', $labels, [['data' => $vals, 'backgroundColor' => ['#2F7A3F', '#D9B76A', '#34506E', '#A8432A']]], $urls, 'Aset menurun atau tidak beroperasi berisiko mengganggu layanan tamu.');
     }
 
-    protected function riskMatrix(): array
+    private function categoryChart(callable $assetUrl): array
     {
-        $counts = AssetRisk::query()->where('state', '!=', RiskState::Closed->value)
-            ->selectRaw('probability as p, consequence as c, COUNT(*) as n')
-            ->groupBy('probability', 'consequence')
-            ->get()
-            ->mapWithKeys(fn ($r) => ["{$r->p}-{$r->c}" => (int) $r->n]);
+        $rows = Asset::query()->whereNotIn('lifecycle_status', ['disposed', 'lost'])->select('category_id', DB::raw('count(*) n'))->groupBy('category_id')->orderByDesc('n')->limit(12)->get();
+        $names = AssetCategory::whereIn('id', $rows->pluck('category_id'))->pluck('name', 'id');
 
-        $cells = [];
+        return $this->chart('kategori', 'Aset per kategori (12 terbanyak)', 'bar', $rows->map(fn ($r) => $names[$r->category_id] ?? '-')->all(),
+            [['label' => 'Aset', 'data' => $rows->pluck('n')->map(fn ($v) => (int) $v)->all(), 'backgroundColor' => '#006632']],
+            $rows->map(fn ($r) => $assetUrl(['category_id' => ['value' => $r->category_id]]))->all(), 'Klik batang untuk membuka daftar aset kategori itu.', ['indexAxis' => 'y']);
+    }
 
-        // Baris dari probabilitas tertinggi agar matriks terbaca seperti peta panas standar.
-        for ($p = 5; $p >= 1; $p--) {
-            for ($c = 1; $c <= 5; $c++) {
-                $score = $p * $c;
-                $cells[] = [
-                    'p' => $p, 'c' => $c, 'count' => $counts["{$p}-{$c}"] ?? 0,
-                    'level' => $score >= 20 ? 'critical' : ($score >= 12 ? 'high' : ($score >= 6 ? 'medium' : 'low')),
-                ];
+    private function locationChart(callable $assetUrl): array
+    {
+        // kelompokkan ke tingkat lantai (atau tingkat kedua pohon lokasi)
+        $locs = Location::query()->get(['id', 'parent_id', 'name', 'location_type', 'full_path'])->keyBy('id');
+        $bucket = function ($id) use ($locs) {
+            $chain = [];
+            while ($id && ($l = $locs[$id] ?? null)) {
+                array_unshift($chain, $l);
+                $id = $l->parent_id;
+            }
+            foreach ($chain as $l) {
+                if ($l->location_type === 'floor') {
+                    return $l;
+                }
+            }
+
+            return $chain[1] ?? $chain[0] ?? null;
+        };
+        $counts = [];
+        foreach (Asset::query()->whereNotIn('lifecycle_status', ['disposed', 'lost'])->select('location_id', DB::raw('count(*) n'))->groupBy('location_id')->get() as $r) {
+            if ($b = $bucket($r->location_id)) {
+                $counts[$b->id] = ($counts[$b->id] ?? 0) + (int) $r->n;
+            }
+        }
+        arsort($counts);
+        $counts = array_slice($counts, 0, 12, true);
+
+        return $this->chart('lokasi', 'Sebaran aset per gedung / lantai', 'bar', array_map(fn ($id) => $locs[$id]->full_path ?? $locs[$id]->name, array_keys($counts)),
+            [['label' => 'Aset', 'data' => array_values($counts), 'backgroundColor' => '#34506E']],
+            array_map(fn ($id) => $assetUrl(['location_id' => ['value' => $id]]), array_keys($counts)), 'Termasuk semua ruang di bawah lantai tersebut.', ['indexAxis' => 'y']);
+    }
+
+    private function verificationByDept(callable $assetUrl): array
+    {
+        $rows = Asset::query()->whereNotIn('lifecycle_status', ['disposed', 'lost'])->whereNotNull('department_id')
+            ->select('department_id', DB::raw("sum(verification_status = 'verified') v"), DB::raw("sum(verification_status <> 'verified') u"))
+            ->groupBy('department_id')->orderByDesc(DB::raw('count(*)'))->limit(12)->get();
+        $names = Department::whereIn('id', $rows->pluck('department_id'))->pluck('name', 'id');
+        $urlsV = $rows->map(fn ($r) => $assetUrl(['department_id' => ['value' => $r->department_id], 'verification_status' => ['value' => 'verified']]))->all();
+        $urlsU = $rows->map(fn ($r) => $assetUrl(['department_id' => ['value' => $r->department_id], 'verification_status' => ['value' => 'unverified']]))->all();
+
+        return $this->chart('verifikasi', 'Progres verifikasi fisik per departemen', 'bar', $rows->map(fn ($r) => $names[$r->department_id] ?? '-')->all(), [
+            ['label' => 'Terverifikasi', 'data' => $rows->pluck('v')->map(fn ($v) => (int) $v)->all(), 'backgroundColor' => '#2F7A3F'],
+            ['label' => 'Belum', 'data' => $rows->pluck('u')->map(fn ($v) => (int) $v)->all(), 'backgroundColor' => '#D9B76A'],
+        ], ['byDataset' => [$urlsV, $urlsU]], 'Target implementasi: semua aset terverifikasi & berlabel.', ['stacked' => true, 'indexAxis' => 'y']);
+    }
+
+    private function woTrend(CarbonImmutable $today, callable $woUrl): array
+    {
+        $start = $today->startOfWeek()->subWeeks(11);
+        $labels = $created = $done = $urls = [];
+        for ($w = 0; $w < 12; $w++) {
+            $a = $start->addWeeks($w);
+            $b = $a->addDays(6);
+            $labels[] = $a->format('d M');
+            $created[] = WorkOrder::whereBetween('received_at', [$a->setTimezone('UTC'), $b->endOfDay()->setTimezone('UTC')])->count();
+            $done[] = WorkOrder::whereBetween('completed_at', [$a->setTimezone('UTC'), $b->endOfDay()->setTimezone('UTC')])->count();
+            $urls[] = $woUrl(['dibuat' => ['from' => $a->toDateString(), 'until' => $b->toDateString()]]);
+        }
+
+        return $this->chart('tren', 'Tren work order 12 minggu', 'line', $labels, [
+            ['label' => 'Masuk', 'data' => $created, 'borderColor' => '#A8432A', 'backgroundColor' => 'rgba(168,67,42,.15)', 'tension' => .3, 'fill' => true],
+            ['label' => 'Diselesaikan', 'data' => $done, 'borderColor' => '#006632', 'backgroundColor' => 'rgba(0,102,50,.1)', 'tension' => .3, 'fill' => true],
+        ], $urls, 'Garis "masuk" di atas "diselesaikan" terus-menerus berarti antrean menumpuk. Klik titik untuk daftar WO minggu itu.');
+    }
+
+    private function woByType(callable $woUrl): array
+    {
+        $rows = WorkOrder::where('received_at', '>=', now()->subDays(90))->select('type', DB::raw('count(*) n'))->groupBy('type')->pluck('n', 'type');
+        $labels = $vals = $urls = [];
+        foreach (WorkOrder::TYPES as $k => $label) {
+            if (! empty($rows[$k])) {
+                $labels[] = $label;
+                $vals[] = (int) $rows[$k];
+                $urls[] = $woUrl(['type' => ['values' => [$k]]]);
             }
         }
 
-        return $cells;
+        return $this->chart('jenis', 'Jenis pekerjaan (90 hari)', 'doughnut', $labels, [['data' => $vals, 'backgroundColor' => self::PALETTE]], $urls,
+            'Porsi korektif/darurat yang besar dibanding preventive menandakan pemeliharaan masih reaktif.');
     }
 
-    protected function trend(CarbonImmutable $today): array
+    private function topFailing(): array
     {
-        $start = $today->startOfMonth()->subMonths(11);
-        $rows = WorkOrder::query()->where('planned_at', '>=', $start)->where('planned_at', '<', $today->startOfMonth()->addMonth())
-            ->get(['planned_at', 'work_type'])
-            ->groupBy(fn (WorkOrder $w) => $w->planned_at->format('Y-m'));
+        $rows = WorkOrder::whereNotNull('asset_id')->whereIn('type', ['corrective', 'emergency'])->where('received_at', '>=', now()->subDays(365))
+            ->select('asset_id', DB::raw('count(*) n'))->groupBy('asset_id')->orderByDesc('n')->limit(10)->get();
+        $assets = Asset::whereIn('id', $rows->pluck('asset_id'))->get()->keyBy('id');
 
-        $months = [];
-        $max = 1;
+        return $this->chart('sering', 'Aset paling sering rusak (12 bulan)', 'bar', $rows->map(fn ($r) => ($a = $assets[$r->asset_id] ?? null) ? $a->asset_code.' · '.$a->name : '-')->all(),
+            [['label' => 'Perbaikan', 'data' => $rows->pluck('n')->map(fn ($v) => (int) $v)->all(), 'backgroundColor' => '#A8432A']],
+            $rows->map(fn ($r) => AssetResource::getUrl('view', ['record' => $r->asset_id]))->all(), 'Kandidat penggantian atau kontrak servis. Klik untuk membuka kartu aset.', ['indexAxis' => 'y']);
+    }
 
-        for ($i = 0; $i < 12; $i++) {
-            $month = $start->addMonths($i);
-            $items = $rows->get($month->format('Y-m'), collect());
-            $entry = [
-                'label' => $month->translatedFormat('M'),
-                'full_label' => $month->translatedFormat('F Y'),
-                'start' => $month->toDateString(),
-                'end' => $month->addMonth()->toDateString(),
-                'preventive' => $items->where('work_type', WorkType::Preventive)->count(),
-                'corrective' => $items->where('work_type', WorkType::Corrective)->count(),
-                'emergency' => $items->where('work_type', WorkType::Emergency)->count(),
-            ];
-            $max = max($max, $entry['preventive'], $entry['corrective'], $entry['emergency']);
-            $months[] = $entry;
+    private function costByMonth(CarbonImmutable $today, callable $woUrl): array
+    {
+        $labels = $mat = $ven = $lab = $urls = [];
+        for ($m = 5; $m >= 0; $m--) {
+            $a = $today->startOfMonth()->subMonths($m);
+            $b = $a->endOfMonth();
+            $labels[] = $a->translatedFormat('M Y');
+            $q = fn ($type) => (float) WoCostLine::where('type', $type)->whereHas('workOrder', fn ($w) => $w->whereBetween('received_at', [$a->setTimezone('UTC'), $b->setTimezone('UTC')]))->sum(DB::raw('quantity * unit_cost'));
+            $mat[] = $q('material');
+            $ven[] = $q('vendor');
+            $lab[] = $q('labor') + $q('other');
+            $urls[] = $woUrl(['dibuat' => ['from' => $a->toDateString(), 'until' => $b->toDateString()]]);
         }
 
-        return ['months' => $months, 'max' => $max];
+        return $this->chart('biaya', 'Biaya pemeliharaan per bulan (Rp)', 'bar', $labels, [
+            ['label' => 'Material', 'data' => $mat, 'backgroundColor' => '#B8862B'],
+            ['label' => 'Jasa vendor', 'data' => $ven, 'backgroundColor' => '#34506E'],
+            ['label' => 'Tenaga & lain', 'data' => $lab, 'backgroundColor' => '#4F6B3A'],
+        ], $urls, 'Klik batang untuk WO bulan tersebut.', ['stacked' => true, 'money' => true]);
+    }
+
+    private function documentStatus(): array
+    {
+        $rows = AssetDocument::select('status', DB::raw('count(*) n'))->groupBy('status')->pluck('n', 'status');
+        $labels = $vals = $urls = [];
+        foreach (AssetDocument::STATUSES as $k => $label) {
+            if (! empty($rows[$k])) {
+                $labels[] = $label;
+                $vals[] = (int) $rows[$k];
+                $urls[] = AssetDocumentResource::getUrl('index', ['filters' => ['status' => ['values' => [$k]]]]);
+            }
+        }
+
+        return $this->chart('dokumen', 'Status dokumen legalitas', 'doughnut', $labels, [['data' => $vals, 'backgroundColor' => ['#2F7A3F', '#D9B76A', '#A8432A', '#34506E', '#BDB3A4', '#6E5F52', '#8A8F3A']]], $urls,
+            'Dokumen kedaluwarsa dapat berarti aset tidak boleh dioperasikan (riksa uji K3) atau tidak tertanggung.');
     }
 }
